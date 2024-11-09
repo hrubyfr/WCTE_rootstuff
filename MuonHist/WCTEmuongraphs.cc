@@ -255,7 +255,7 @@ void th2d_Reyna_flux(){
 		for (double i = 0; i < TH2hist->GetNbinsX(); i++){
 			
 
-			TH2hist->SetBinContent(i+1, j+1, mean_energy);
+			TH2hist->SetBinContent(i+1, j+1, mean);
 		}
 	}
 
@@ -284,7 +284,7 @@ void th2d_Reyna_flux(){
 			flux = TH2hist_flux -> GetBinContent(j+1, i+1);
 			Emean = TH2hist -> GetBinContent(j+1, i+1);
 
-			output << i << " " << j << " " << cos_mean << " " << cos_min << " " << cos_max << " " << phi_mean << " " << phi_min << " " << phi_max << " " << flux << " " << Emean * 1000 << endl;
+			output << i << " " << j << " " << cos_mean << " " << cos_min << " " << cos_max << " " << phi_mean << " " << phi_min << " " << phi_max << " " << flux << " " << Emean << endl;
 		}
 	}
 	output.close();
