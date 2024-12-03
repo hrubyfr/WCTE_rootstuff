@@ -1,0 +1,917 @@
+{
+    "_comment": "Channel maps: based on Arturo's map in ELOG entry 85",
+    "_comment": "TDC channels",
+    "_comment": "TDC board 0",
+    "_comment": "T0",
+    "TDC_channel_0" : {
+        "detector": "T0-0L",
+        "PMT_id": 0
+    },
+    "TDC_channel_1" : {
+        "detector": "T0-0R",
+        "PMT_id": 1
+    },
+    "TDC_channel_2" : {
+        "detector": "T0-1L",
+        "PMT_id": 2
+    },
+    "TDC_channel_3" : {
+        "detector": "T0-1R",
+        "PMT_id": 3
+    },
+    "_comment": "T1",
+    "TDC_channel_4" : {
+        "detector": "T1-0L",
+        "PMT_id": 4
+    },
+    "TDC_channel_5" : {
+        "detector": "T1-0R",
+        "PMT_id": 5
+    },
+    "TDC_channel_6" : {
+        "detector": "T1-1L",
+        "PMT_id": 6
+    },
+    "TDC_channel_7" : {
+        "detector": "T1-1R",
+        "PMT_id": 7
+    },
+    "_comment": "T3 (board 1 channel 9)",
+    "TDC_channel_41" : {
+        "detector": "T3",
+        "PMT_id": 9
+    },
+    "_comment": "ACTs",
+    "TDC_channel_12" : {
+        "detector": "ACT0-L",
+        "PMT_id": 10
+    },
+    "TDC_channel_13" : {
+        "detector": "ACT0-R",
+        "PMT_id": 11
+    },
+    "TDC_channel_14" : {
+        "detector": "ACT1-L",
+        "PMT_id": 12
+    },
+    "TDC_channel_15" : {
+        "detector": "ACT1-R",
+        "PMT_id": 13
+    },
+    "TDC_channel_16" : {
+        "detector": "ACT2-L",
+        "PMT_id": 14
+    },
+    "TDC_channel_17" : {
+        "detector": "ACT2-R",
+        "PMT_id": 15
+    },
+    "TDC_channel_18" : {
+        "detector": "ACT3-L",
+        "PMT_id": 16
+    },
+    "TDC_channel_19" : {
+        "detector": "ACT3-R",
+        "PMT_id": 17
+    },
+    "TDC_channel_20" : {
+        "detector": "ACT4-L",
+        "PMT_id": 18
+    },
+    "TDC_channel_21" : {
+        "detector": "ACT4-R",
+        "PMT_id": 19
+    },
+    "TDC_channel_22" : {
+        "detector": "ACT5-L",
+        "PMT_id": 20
+    },
+    "TDC_channel_23" : {
+        "detector": "ACT5-R",
+        "PMT_id": 21
+    },
+    "_comment": "HCs",
+    "TDC_channel_9" : {
+        "detector": "HC-0",
+        "PMT_id": 22
+    },
+    "TDC_channel_10" : {
+        "detector": "HC-1",
+        "PMT_id": 23
+    },
+    "_comment": "LeadGlass - PBG (board 1 channel 8)",
+    "TDC_channel_40" : {
+        "detector": "PbGlass",
+        "PMT_id": 25
+    },
+    "_comment": "Muon tagger",
+    "TDC_channel_24" : {
+        "detector": "MUT-L",
+        "PMT_id": 26
+    },
+    "TDC_channel_25" : {
+        "detector": "MUT-R",
+        "PMT_id": 27
+    },
+    "_comment": "TOF0 (board 2 channels 0 to 15)",
+    "TDC_channel_64" : {
+        "detector": "TOF0-0",
+        "PMT_id": 28
+    },
+    "TDC_channel_65" : {
+        "detector": "TOF0-1",
+        "PMT_id": 29
+    },
+    "TDC_channel_66" : {
+        "detector": "TOF0-2",
+        "PMT_id": 30
+    },
+    "TDC_channel_67" : {
+        "detector": "TOF0-3",
+        "PMT_id": 31
+    },
+    "TDC_channel_68" : {
+        "detector": "TOF0-4",
+        "PMT_id": 32
+    },
+    "TDC_channel_69" : {
+        "detector": "TOF0-5",
+        "PMT_id": 33
+    },
+    "TDC_channel_70" : {
+        "detector": "TOF0-6",
+        "PMT_id": 34
+    },
+    "TDC_channel_71" : {
+        "detector": "TOF0-7",
+        "PMT_id": 35
+    },
+    "TDC_channel_72" : {
+        "detector": "TOF0-8",
+        "PMT_id": 36
+    },
+    "TDC_channel_73" : {
+        "detector": "TOF0-9",
+        "PMT_id": 37
+    },
+    "_comment": "The beam_ana.cpp code associates TOF0-10 to both board 1 ch 10 and board 2 ch 10, we do have some data for board 1 channel 10 but I don't think abothing for board 2 channel 10, picking the former as ref here",
+    "TDC_channel_74" : {
+        "detector": "empty?",
+        "PMT_id": 63
+    },
+    "TDC_channel_42" : {
+        "detector": "TOF0-10",
+        "PMT_id": 38
+    },
+    "TDC_channel_75" : {
+        "detector": "TOF0-11",
+        "PMT_id": 39
+    },
+    "TDC_channel_76" : {
+        "detector": "TOF0-12",
+        "PMT_id": 40
+    },
+    "TDC_channel_77" : {
+        "detector": "TOF0-13",
+        "PMT_id": 41
+    },
+    "TDC_channel_78" : {
+        "detector": "TOF0-14",
+        "PMT_id": 42
+    },
+    "TDC_channel_79" : {
+        "detector": "TOF0-15",
+        "PMT_id": 43
+    },
+    "_comment": "TOF1 (board 2 channels 16 to 30 and TOF1-15 on board 0 channel 30)",
+    "TDC_channel_80" : {
+        "detector": "TOF1-0",
+        "PMT_id": 44
+    },
+    "TDC_channel_81" : {
+        "detector": "TOF1-1",
+        "PMT_id": 45
+    },
+    "TDC_channel_82" : {
+        "detector": "TOF1-2",
+        "PMT_id": 46
+    },
+    "TDC_channel_83" : {
+        "detector": "TOF1-3",
+        "PMT_id": 47
+    },
+    "TDC_channel_84" : {
+        "detector": "TOF1-4",
+        "PMT_id": 48
+    },
+    "TDC_channel_85" : {
+        "detector": "TOF1-5",
+        "PMT_id": 49
+    },
+    "TDC_channel_86" : {
+        "detector": "1-6",
+        "PMT_id": 50
+    },
+    "TDC_channel_87" : {
+        "detector": "TOF1-7",
+        "PMT_id": 51
+    },
+    "TDC_channel_88" : {
+        "detector": "TOF1-8",
+        "PMT_id": 52
+    },
+    "TDC_channel_89" : {
+        "detector": "TOF1-9",
+        "PMT_id": 53
+    },
+    "TDC_channel_90" : {
+        "detector": "TOF1-10",
+        "PMT_id": 54
+    },
+    "TDC_channel_91" : {
+        "detector": "TOF1-11",
+        "PMT_id": 55
+    },
+    "TDC_channel_92" : {
+        "detector": "TOF1-12",
+        "PMT_id": 56
+    },
+    "TDC_channel_93" : {
+        "detector": "TOF1-13",
+        "PMT_id": 57
+    },
+    "TDC_channel_94" : {
+        "detector": "TOF1-14",
+        "PMT_id": 58
+    },
+    "TDC_channel_30" : {
+        "detector": "TOF1-15",
+        "PMT_id": 59
+    },
+    "_comment": "TDC references board 0 channel 31, board 1 channel 14, board 2 channel 31",
+    "TDC_channel_31" : {
+        "detector": "TDCT00",
+        "PMT_id": 60
+    },
+    
+    "TDC_channel_46" : {
+        "detector": "TDCT01",
+        "PMT_id": 61
+    },
+    "TDC_channel_95" : {
+        "detector": "TDCT02",
+        "PMT_id": 62
+    },
+    "_comment": "QDC channels",
+    "_comment": "board 0:",
+    "_comment": "T0",
+    "QDC_channel_12" : {
+        "detector": "T0-0L",
+        "PMT_id": 0
+    },
+    "QDC_channel_13" : {
+        "detector": "T0-0R",
+        "PMT_id": 1
+    },
+    "QDC_channel_14" : {
+        "detector": "T0-1L",
+        "PMT_id": 2
+    },
+    "QDC_channel_15" : {
+        "detector": "T0-1R",
+        "PMT_id": 3
+    },
+    "_comment": "T1",
+    "QDC_channel_16" : {
+        "detector": "T1-0L",
+        "PMT_id": 4
+    },
+    "QDC_channel_17" : {
+        "detector": "T1-0R",
+        "PMT_id": 5
+    },
+    "QDC_channel_18" : {
+        "detector": "T1-1L",
+        "PMT_id": 6
+    },
+    "QDC_channel_19" : {
+        "detector": "T1-1R",
+        "PMT_id": 7
+    },
+    "_comment": "T2",
+    "QDC_channel_24" : {
+        "detector": "T2",
+        "PMT_id": 8
+    },
+    "_comment": "T3",
+    "QDC_channel_20" : {
+        "detector": "T3",
+        "PMT_id": 9
+    },
+    "_comment": "ACTs",
+    "QDC_channel_0" : {
+        "detector": "ACT0-L",
+        "PMT_id": 10
+    },
+    "QDC_channel_1" : {
+        "detector": "ACT0-R",
+        "PMT_id": 11
+    },
+    "QDC_channel_2" : {
+        "detector": "ACT1-L",
+        "PMT_id": 12
+    },
+    "QDC_channel_3" : {
+        "detector": "ACT1-R",
+        "PMT_id": 13
+    },
+    "QDC_channel_4" : {
+        "detector": "ACT2-L",
+        "PMT_id": 14
+    },
+    "QDC_channel_5" : {
+        "detector": "ACT2-R",
+        "PMT_id": 15
+    },
+    "QDC_channel_6" : {
+        "detector": "ACT3-L",
+        "PMT_id": 16
+    },
+    "QDC_channel_7" : {
+        "detector": "ACT3-R",
+        "PMT_id": 17
+    },
+    "QDC_channel_8" : {
+        "detector": "ACT4-L",
+        "PMT_id": 18
+    },
+    "QDC_channel_9" : {
+        "detector": "ACT4-R",
+        "PMT_id": 19
+    },
+    "QDC_channel_10" : {
+        "detector": "ACT5-L",
+        "PMT_id": 20
+    },
+    "QDC_channel_11" : {
+        "detector": "ACT5-R",
+        "PMT_id": 21
+    },
+    "_comment": "HCs",
+    "QDC_channel_23" : {
+        "detector": "HC-0",
+        "PMT_id": 22
+    },
+    "QDC_channel_22" : {
+        "detector": "HC-1",
+        "PMT_id": 23
+    },
+    "QDC_channel_21" : {
+        "detector": "HC-2",
+        "PMT_id": 24
+    },
+    "_comment": "Lead Glass",
+    "QDC_channel_66" : {
+        "detector": "PbGlass",
+        "PMT_id": 25
+    },
+    "_comment": "Muon tagger",
+    "QDC_channel_64" : {
+        "detector": "MUT-L",
+        "PMT_id": 26
+    },
+    "QDC_channel_65" : {
+        "detector": "MUT-R",
+        "PMT_id": 27
+    },
+    "_comment": "TOF0 (board 1 channels 16 to 31)",
+    "QDC_channel_48" : {
+        "detector": "TOF0-0",
+        "PMT_id": 28
+    },
+    "QDC_channel_49" : {
+        "detector": "TOF0-1",
+        "PMT_id": 29
+    },
+    "QDC_channel_50" : {
+        "detector": "TOF0-2",
+        "PMT_id": 30
+    },
+    "QDC_channel_51" : {
+        "detector": "TOF0-3",
+        "PMT_id": 31
+    },
+    "QDC_channel_52" : {
+        "detector": "TOF0-4",
+        "PMT_id": 32
+    },
+    "QDC_channel_53" : {
+        "detector": "TOF0-5",
+        "PMT_id": 33
+    },
+    "QDC_channel_54" : {
+        "detector": "TOF0-6",
+        "PMT_id": 34
+    },
+    "QDC_channel_55" : {
+        "detector": "TOF0-7",
+        "PMT_id": 35
+    },
+    "QDC_channel_56" : {
+        "detector": "TOF0-8",
+        "PMT_id": 36
+    },
+    "QDC_channel_57" : {
+        "detector": "TOF0-9",
+        "PMT_id": 37
+    },
+    "QDC_channel_58" : {
+        "detector": "TOF0-10",
+        "PMT_id": 38
+    },
+    "QDC_channel_59" : {
+        "detector": "TOF0-11",
+        "PMT_id": 39
+    },
+    "QDC_channel_60" : {
+        "detector": "TOF0-12",
+        "PMT_id": 40
+    },
+    "QDC_channel_61" : {
+        "detector": "TOF0-13",
+        "PMT_id": 41
+    },
+    "QDC_channel_62" : {
+        "detector": "TOF0-14",
+        "PMT_id": 42
+    },
+    "QDC_channel_63" : {
+        "detector": "TOF0-15",
+        "PMT_id": 43
+    },
+    "_comment": "TOF1 (board 2 channels 16 to 31)",
+
+    "QDC_channel_80" : {
+        "detector": "TOF1-0",
+        "PMT_id": 44
+    },
+    "QDC_channel_81" : {
+        "detector": "TOF1-1",
+        "PMT_id": 45
+    },
+    "QDC_channel_82" : {
+        "detector": "TOF1-2",
+        "PMT_id": 46
+    },
+    "QDC_channel_83" : {
+        "detector": "TOF1-3",
+        "PMT_id": 47
+    },
+    "QDC_channel_84" : {
+        "detector": "TOF1-4",
+        "PMT_id": 48
+    },
+    "QDC_channel_85" : {
+        "detector": "TOF1-5",
+        "PMT_id": 49
+    },
+    "QDC_channel_86" : {
+        "detector": "TOF1-6",
+        "PMT_id": 50
+    },
+    "QDC_channel_87" : {
+        "detector": "TOF1-7",
+        "PMT_id": 51
+    },
+    "QDC_channel_88" : {
+        "detector": "TOF1-8",
+        "PMT_id": 52
+    },
+    "QDC_channel_89" : {
+        "detector": "TOF1-9",
+        "PMT_id": 53
+    },
+    "QDC_channel_90" : {
+        "detector": "TOF1-10",
+        "PMT_id": 54
+    },
+    "QDC_channel_91" : {
+        "detector": "TOF1-11",
+        "PMT_id": 55
+    },
+    "QDC_channel_92" : {
+        "detector": "TOF1-12",
+        "PMT_id": 56
+    },
+    "QDC_channel_93" : {
+        "detector": "TOF1-13",
+        "PMT_id": 57
+    },
+    "QDC_channel_94" : {
+        "detector": "TOF1-14",
+        "PMT_id": 58
+    },
+    "QDC_channel_95" : {
+        "detector": "TOF1-15",
+        "PMT_id": 59
+    },
+    "_comment": "Hodoscope channels (board 1 channels 0 to 14) note, PMT 60, 61, 62 are the TDC refs",
+    "QDC_channel_32" : {
+        "detector": "HD0",
+        "PMT_id": 63
+    },
+    "QDC_channel_33" : {
+        "detector": "HD1",
+        "PMT_id": 64
+    },
+    "QDC_channel_34" : {
+        "detector": "HD2",
+        "PMT_id": 65
+    },
+    "QDC_channel_35" : {
+        "detector": "HD3",
+        "PMT_id": 66
+    },
+    "QDC_channel_36" : {
+        "detector": "HD4",
+        "PMT_id": 67
+    },
+    "QDC_channel_37" : {
+        "detector": "HD5",
+        "PMT_id": 68
+    },
+    "QDC_channel_38" : {
+        "detector": "HD6",
+        "PMT_id": 69
+    },
+    "QDC_channel_39" : {
+        "detector": "HD7",
+        "PMT_id": 70
+    },
+    "QDC_channel_40" : {
+        "detector": "HD8",
+        "PMT_id": 71
+    },
+    "QDC_channel_41" : {
+        "detector": "HD9",
+        "PMT_id": 72
+    },
+    "QDC_channel_42" : {
+        "detector": "HD10",
+        "PMT_id": 73
+    },
+    "QDC_channel_43" : {
+        "detector": "HD11",
+        "PMT_id": 74
+    },
+    "QDC_channel_44" : {
+        "detector": "HD12",
+        "PMT_id": 75
+    },
+
+    "QDC_channel_45" : {
+        "detector": "HD13",
+        "PMT_id": 76
+    },
+
+    "QDC_channel_46" : {
+        "detector": "HD14",
+        "PMT_id": 77
+    },
+
+    "_comment": "Also get the PMT names by PMT_id, simpler for plotting",
+
+    "PMT_0" : {
+        "detector": "T0-0L",
+        "TDC_channel": 0,
+        "QDC_channel": 12,
+        "QDC_pedestal": 200
+    },
+
+    "PMT_1" : {
+        "detector": "T0-0R",
+        "TDC_channel": 2,
+        "QDC_channel": 13,
+        "QDC_pedestal": 200
+    },
+
+    "PMT_2" : {
+        "detector": "T0-1L",
+        "TDC_channel": 1,
+        "QDC_channel": 14,
+        "QDC_pedestal": 200
+    },
+
+    "PMT_3" : {
+        "detector": "T0-1R",
+        "TDC_channel": 3,
+        "QDC_channel": 15,
+        "QDC_pedestal": 200
+    },
+    "PMT_4" : {
+        "detector": "T1-0L",
+        "TDC_channel": 4,
+        "QDC_channel": 16,
+        "QDC_pedestal": 50
+    },
+    "PMT_5" : {
+        "detector": "T1-0R",
+        "TDC_channel": 6,
+        "QDC_channel": 17,
+        "QDC_pedestal": 200
+    },
+    "PMT_6" : {
+        "detector": "T1-1L",
+        "TDC_channel": 5,
+        "QDC_channel": 18,
+        "QDC_pedestal": 150
+    },
+    "PMT_7" : {
+        "detector": "T1-1R",
+        "TDC_channel": 7,
+        "QDC_channel": 19,
+        "QDC_pedestal": 500
+    },
+    "PMT_8" : {
+        "detector": "T2",
+        "TDC_channel": null,
+        "QDC_channel": 24
+    },
+    "PMT_9" : {
+        "detector": "T3",
+        "TDC_channel": 41,
+        "QDC_channel": 20
+    },
+    "PMT_10" : {
+        "detector": "ACT0-L",
+        "TDC_channel": 12,
+        "QDC_channel": 0
+    },
+    "PMT_11" : {
+        "detector": "ACT0-R",
+        "TDC_channel": 13,
+        "QDC_channel": 1
+    },
+    "PMT_12" : {
+        "detector": "ACT1-L",
+        "TDC_channel": 14,
+        "QDC_channel": 2
+    },
+    "PMT_13" : {
+        "detector": "ACT1-R",
+        "TDC_channel": 15,
+        "QDC_channel": 3
+    },
+    "PMT_14" : {
+        "detector": "ACT2-L",
+        "TDC_channel": 16,
+        "QDC_channel": 4
+    },
+    "PMT_15" : {
+        "detector": "ACT2-R",
+        "TDC_channel": 17,
+        "QDC_channel": 5
+    },
+    "PMT_16" : {
+        "detector": "ACT3-L",
+        "TDC_channel": 18,
+        "QDC_channel": 6
+    },
+    "PMT_17" : {
+        "detector": "ACT3-R",
+        "TDC_channel": 19,
+        "QDC_channel": 7
+    },
+    "PMT_18" : {
+        "detector": "ACT4-L",
+        "TDC_channel": 20,
+        "QDC_channel": 8
+    },
+    "PMT_19" : {
+        "detector": "ACT4-R",
+        "TDC_channel": 21,
+        "QDC_channel": 9
+    },
+    "PMT_20" : {
+        "detector": "ACT5-L",
+        "TDC_channel": 22,
+        "QDC_channel": 10
+    },
+    "PMT_21" : {
+        "detector": "ACT5-R",
+        "TDC_channel": 23,
+        "QDC_channel": 11
+    },
+    "PMT_22" : {
+        "detector": "HC-0",
+        "TDC_channel": 9,
+        "QDC_channel": 23
+    },
+    "PMT_23" : {
+        "detector": "HC-1",
+        "TDC_channel": 10,
+        "QDC_channel": 22
+    },
+    "PMT_24" : {
+        "detector": "HC-2",
+        "TDC_channel": null,
+        "QDC_channel": 21
+    },
+    "PMT_25" : {
+        "detector": "PbGlass",
+        "TDC_channel": 40,
+        "QDC_channel": 66
+    },
+    "PMT_26" : {
+        "detector": "MUT-L",
+        "TDC_channel": 24,
+        "QDC_channel": 64
+    },
+    "PMT_27" : {
+        "detector": "MUT-R",
+        "TDC_channel": 25,
+        "QDC_channel": 65
+    },
+    "PMT_28" : {
+        "detector": "TOF0-0",
+        "TDC_channel": 64,
+        "QDC_channel": 48
+    },
+    "PMT_29" : {
+        "detector": "TOF0-1",
+        "TDC_channel": 65,
+        "QDC_channel": 49
+    },
+    "PMT_30" : {
+        "detector": "TOF0-2",
+        "TDC_channel": 66,
+        "QDC_channel": 50
+    },
+    "PMT_31" : {
+        "detector": "TOF0-3",
+        "TDC_channel": 67,
+        "QDC_channel": 51
+    },
+    "PMT_32" : {
+        "detector": "TOF0-4",
+        "TDC_channel": 68,
+        "QDC_channel": 52
+    },
+    "PMT_33" : {
+        "detector": "TOF0-5",
+        "TDC_channel": 69,
+        "QDC_channel": 53
+    },
+    "PMT_34" : {
+        "detector": "TOF0-6",
+        "TDC_channel": 70,
+        "QDC_channel": 54
+    },
+    "PMT_35" : {
+        "detector": "TOF0-7",
+        "TDC_channel": 71,
+        "QDC_channel": 55
+    },
+    "PMT_36" : {
+        "detector": "TOF0-8",
+        "TDC_channel": 72,
+        "QDC_channel": 56
+    },
+    "PMT_37" : {
+        "detector": "TOF0-9",
+        "TDC_channel": 73,
+        "QDC_channel": 57
+    },
+    "_comment": "Note that we are taking the board 2 ch 10 value for TOF0-10, unsure about the board 0 ch 10 for TDC",
+    "PMT_38" : {
+        "detector": "TOF0-10",
+        "TDC_channel": 42,
+        "QDC_channel": 58
+    },
+    "PMT_39" : {
+        "detector": "TOF0-11",
+        "TDC_channel": 75,
+        "QDC_channel": 59
+    },
+    "PMT_40" : {
+        "detector": "TOF0-12",
+        "TDC_channel": 76,
+        "QDC_channel": 60
+    },
+    "PMT_41" : {
+        "detector": "TOF0-13",
+        "TDC_channel": 77,
+        "QDC_channel": 61
+    },
+    "PMT_42" : {
+        "detector": "TOF0-14",
+        "TDC_channel": 78,
+        "QDC_channel": 62
+    },
+    "PMT_43" : {
+        "detector": "TOF0-15",
+        "TDC_channel": 79,
+        "QDC_channel": 63
+    },
+    "PMT_44" : {
+        "detector": "TOF1-0",
+        "TDC_channel": 80,
+        "QDC_channel": 80
+    },
+    "PMT_45" : {
+        "detector": "TOF1-1",
+        "TDC_channel": 81,
+        "QDC_channel": 81
+    },
+    "PMT_46" : {
+        "detector": "TOF1-2",
+        "TDC_channel": 82,
+        "QDC_channel": 82
+    },
+    "PMT_47" : {
+        "detector": "TOF1-3",
+        "TDC_channel": 83,
+        "QDC_channel": 83
+    },
+    "PMT_48" : {
+        "detector": "TOF1-4",
+        "TDC_channel": 84,
+        "QDC_channel": 84
+    },
+    "PMT_49" : {
+        "detector": "TOF1-5",
+        "TDC_channel": 85,
+        "QDC_channel": 85
+    },
+    "PMT_50" : {
+        "detector": "TOF1-6",
+        "TDC_channel": 86,
+        "QDC_channel": 86
+    },
+    "PMT_51" : {
+        "detector": "TOF1-7",
+        "TDC_channel": 87,
+        "QDC_channel": 87
+    },
+    "PMT_52" : {
+        "detector": "TOF1-8",
+        "TDC_channel": 88,
+        "QDC_channel": 88
+    },
+    "PMT_53" : {
+        "detector": "TOF1-9",
+        "TDC_channel": 89,
+        "QDC_channel": 89
+    },
+    "PMT_54" : {
+        "detector": "TOF1-10",
+        "TDC_channel": 90,
+        "QDC_channel": 90
+    },
+    "PMT_55" : {
+        "detector": "TOF1-11",
+        "TDC_channel": 91,
+        "QDC_channel": 91
+    },
+    "PMT_56" : {
+        "detector": "TOF1-12",
+        "TDC_channel": 92,
+        "QDC_channel": 92
+    },
+    "PMT_57" : {
+        "detector": "TOF1-13",
+        "TDC_channel": 93,
+        "QDC_channel": 93
+    },
+    "PMT_58" : {
+        "detector": "TOF1-14",
+        "TDC_channel": 94,
+        "QDC_channel": 94
+    },
+    "PMT_59" : {
+        "detector": "TOF1-15",
+        "TDC_channel": 30,
+        "QDC_channel": 95
+    },
+    "PMT_60" : {
+        "detector": "TDCT00",
+        "TDC_channel": 31,
+        "QDC_channel": null
+    },
+    "PMT_61" : {
+        "detector": "TDCT01",
+        "TDC_channel": 46,
+        "QDC_channel": null
+    },
+    "PMT_62" : {
+        "detector": "TDCT02",
+        "TDC_channel": 95,
+        "QDC_channel": null
+    },
+    "PMT_63" : {
+        "detector": "emptyOrHD0",
+        "TDC_channel": 42,
+        "QDC_channel": 32
+    }
+
+}
