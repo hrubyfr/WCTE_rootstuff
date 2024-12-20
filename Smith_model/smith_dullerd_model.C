@@ -28,16 +28,22 @@ public:
 	double j_pi = 148160;
 };
 
-class Reyna_params{
-public: 
-	double c1 = 0.00253;
-	double c2 = 0.2455;
-	double c3 = 1.288;
-	double c4 = -0.2555;
-	double c5 = 0.0209;
-};
 
 
+Double_t E_pi(Double_t* x, Double_t* par){
+	Parameters params;
+	Double_t E0 = x[0];
+	Double_t theta = par[0];
+	auto E_pi = (1/params.r) * (E0 + params.a * params.y0 * (1 / cos(theta) - 0.001));
+	return E_pi
+}
+
+Double_t P_mu(Double_t* x, Double_t* par){
+	Parameters params;
+	Double_t E0 = x[0];
+	Double_t theta = par[0];
+	auto P_mu = (0.1)
+}
 
 Double_t phi_s(/*Double_t *x, Double_t *par*/Double_t E0, Double_t theta){
 
@@ -114,7 +120,7 @@ void th2dflux(){
 	canvas->SetRightMargin(0.15);
 
 	TH2hist->Draw("colz");
-	canvas->SaveAs("TH2Flux.png");
+	canvas->SaveAs("TH2Flux.jpg");
 	canvas->SaveAs("TH2Flux.pdf");
 
 }
@@ -161,7 +167,7 @@ void th2denergy(){
 
 
 void th2d_Reyna_flux(){
-	auto canvas = new TCanvas("flux canvas", "flux canvas", 1200, 800);
+	auto canvas = new TCanvas();
 	canvas -> cd();
 
 	Double_t cos_theta = 1;
@@ -187,10 +193,10 @@ void th2d_Reyna_flux(){
 	canvas->SetRightMargin(0.15);
 
 	TH2hist_flux->Draw("colz");
-	canvas->SaveAs("TH2Flux.png");
+	canvas->SaveAs("TH2Flux.jpg");
 	canvas->SaveAs("TH2Flux.pdf");
 
-	canvas->Clear();
+
 
 
 	Double_t par[1] = {0 * TMath::DegToRad()};
@@ -227,7 +233,7 @@ void th2d_Reyna_flux(){
 	TString xaxis_title = ";#phi [deg]";
 	TString yaxis_title = ";cos (#theta)";
 
-	auto energy_canvas = new TCanvas("EnergyCanvas", "EnergyCanvas", 1200, 800);
+	auto energy_canvas = new TCanvas();
 	energy_canvas->cd();
 	energy_canvas->SetLogz();
 
@@ -258,14 +264,14 @@ void th2d_Reyna_flux(){
 			TH2hist->SetBinContent(i+1, j+1, mean);
 		}
 	}
-	
-	energy_canvas->SetRightMargin(0.15);
+
+	canvas->SetRightMargin(0.1);
 
 	TH2hist->GetZaxis()->SetTitle("p mean [GeV/c]");
 	TH2hist->Draw("colz");
 
-	energy_canvas ->SaveAs("Energy_hist2.pdf");
-	energy_canvas->SaveAs("Energy_hist2.png");
+	canvas ->SaveAs("Energy_hist2.pdf");
+	canvas->SaveAs("Energy_hist2.jpg");
 
 	// OUTPUT HISTOGRAM TO DATA FILE
 

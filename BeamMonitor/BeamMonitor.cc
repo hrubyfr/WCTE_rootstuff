@@ -113,6 +113,28 @@ std::vector<ROOT::Math::XYPoint> Generate_Grid(double radius){
     }
     return points;
 }
+
+std::vector<ROOT::Math::XYPoint> Generate_Grid_sim(double radius){
+
+    std::vector<ROOT::Math::XYPoint> points;
+
+    for (int i = 0; i <= 100; ++i)
+    {
+        ROOT::Math::XYPoint point;
+        double y = i * 0.02 * radius - 1*radius;
+        for (int j = 0; j <= 100; ++j)
+        {
+            double x  = j * 0.02 * radius - 1*radius;
+            point.SetX(x);
+            point.SetY(y);
+            if (distance(x, y) <= radius){points.push_back(point);
+            // std::cout<<"point X: " << x << " Y: " << y << endl;
+            }
+            
+        }
+    }
+    return points;
+}
 //##########################################################################################################
 
 //__________________________________GENERATION_____OF____SIGNAL_____IN____SIPMS_____________________________
@@ -134,9 +156,33 @@ double generate_signal_str_NoAtt(ROOT::Math::XYPoint point, ROOT::Math::Polar2DV
     // std::cout << Sig_strength << endl;
     return Sig_strength;
 }
+double generate_signal_onDistance(ROOT::Math::XYPoint point, ROOT::Math::Polar2DVector det_position){
+
+    double max_sig_strength = 1.0;
+    auto distance_vector = point - det_position;
+    double Sig_strength = max_sig_strength * (1/pow(2,distance(distance_vector.X(), distance_vector.Y())));
+    // std::cout << Sig_strength << endl;
+    return Sig_strength;
+}
 //#####################################################################################################
 
 //_______________________________________DIFFERENT____HISTOGRAMS_______________________________________
+void draw_OP(std::vector<ROOT::Math::XYPoint> points, double radius){
+    auto canvas = new TCanvas("Original points", "original points", 800, 800);
+
+    canvas->Clear();
+    gStyle->SetOptStat(0);
+    gStyle->SetPalette(1);
+    auto points_histogram = new TH2D("", "", 1000, -radius, radius, 1000, -radius, radius);
+    for (int i = 0; i < points.size(); i++){
+        points_histogram->Fill(points[i].X(), points[i].Y());
+    }
+    points_histogram->SetTitle("Original MC points");
+    auto circle = new TEllipse(0, 0, radius, radius);
+    circle->SetFillStyle(0);
+    points_histogram->Draw("colz");
+    circle->Draw("same");
+}
 
 void draw_arrows(std::vector<ROOT::Math::XYPoint> points, std::vector<ROOT::Math::XYPoint> reconstructed_points, TCanvas* canvas, double lambda, TString filename, double radius){
     canvas->Clear();
@@ -249,6 +295,23 @@ void draw_histogram(std::vector<ROOT::Math::XYPoint> points, std::vector<ROOT::M
 
     
 }
+
+// _______________ DRAW TH2D OF TOF0 AND TOF1 RESPONSE VIA GRID POINTS__________________________
+void FillCharge(TH2D* histogram, double SiPMCharge, ROOT::Math::XYPoint point){
+    histogram->Fill(point.X(), point.Y(), SiPMCharge);
+}
+
+void TOFsim_hist(double radius, std::vector<ROOT::Math::XYPoint> points, std::vector<double> SiPMCharge, TString title){
+    auto hist = new TH2D(title, title, 101, -radius, radius, 101, -radius, radius);
+    hist->GetXaxis()->SetTitle("x [cm]");
+    hist->GetYaxis()->SetTitle("y [cm]");
+    hist->GetZaxis()->SetTitle("arbitrary charge");
+    for (int i = 0; i < points.size(); i++){
+        FillCharge(hist, SiPMCharge[i], points[i]);
+    }
+    hist->Draw("colz");
+}
+
 //____________________GET___MEAN___RANGE___AFTER___RECONSTRUCTION________________________________
 
 double Get_Mean_Range(std::vector<ROOT::Math::XYPoint> reconstructed_points, double radius){
@@ -375,11 +438,74 @@ void BeamMonitor() {
     std::vector<std::vector<double>> PMT_signal_NoAtt;
 
     auto SiPMTVector = Generate_SiPMTVector(radius);
+
+
+//#### GRID SIGNAL RESPONSE SIMULATION
+
+    double TOF0_radius = 3.0;
+    double TOF1_radius = 4.0;
+
+    auto TOF0_SiPM = Generate_SiPMTVector(TOF0_radius);
+    auto TOF1_SiPM = Generate_SiPMTVector(TOF1_radius);
+
+    std::vector<ROOT::Math::XYPoint> sim_points_TOF0 = Generate_Grid_sim(TOF0_radius);
+    std::vector<ROOT::Math::XYPoint> sim_points_TOF1 = Generate_Grid_sim(TOF1_radius);
+    std::vector<std::vector<double>> TOF0_signal;
+    std::vector<std::vector<double>> TOF1_signal;
+
+    draw_OP(sim_points_TOF0, TOF0_radius);
+
+    for(int i = 0; i < TOF0_SiPM.size(); i++){
+        std::vector<double> v1;
+
+        for (int j = 0; j < sim_points_TOF0.size(); j++)
+            {
+                v1.push_back(generate_signal_onDistance(sim_points_TOF0[j], TOF0_SiPM[i]));
+            }
+            TOF0_signal.push_back(v1);
+    }
+    for(int i = 0; i < TOF1_SiPM.size(); i++){
+        std::vector<double> v1;
+
+        for (int j = 0; j < sim_points_TOF1.size(); j++)
+            {
+                v1.push_back(generate_signal_onDistance(sim_points_TOF1[j], TOF1_SiPM[i]));
+            }
+            TOF1_signal.push_back(v1);
+    }
+    
+    auto can1 = new TCanvas("TOF0_sim", "TOF0_sim", 1980, 800);
+    can1->Divide(4, 4);
+    for(int i = 0; i < TOF0_signal.size(); i++){
+        TString hist_title = "SiPM " + to_string(i);
+        can1->cd(i+1);
+        TOFsim_hist(TOF0_radius, sim_points_TOF0, TOF0_signal[i], hist_title);
+    }
+    can1->Update();
+    auto can2 = new TCanvas("TOF1_sim", "TOF1_sim", 1980, 800);
+    can2->Divide(4, 4);
+    for(int i = 0; i < TOF1_signal.size(); i++){
+        TString hist_title = "SiPM " + to_string(i);
+        can2->cd(i+1);
+        TOFsim_hist(TOF1_radius, sim_points_TOF1, TOF1_signal[i], hist_title);
+    }
+    can2->Update();
+
+    can1->SaveAs("TOF0 SiPM response.png");
+    can2->SaveAs("TOF1 SiPM response.png");
+    can1->SaveAs("TOF0 SiPM response.pdf");
+    can2->SaveAs("TOF1 SiPM response.pdf");
+
+
+//#########################################################
+
     std::vector<std::vector<double>> SiPM_charges;
     for (int i = 0; i < 10; i++){
         std::vector<double> SiPM_charge = {3, 2.5, 2, 1.5, 1, 0, 1, 1.5, 3, 2.5, 2, 1.5, 1, 0, 1, 1.5};
         SiPM_charges.push_back(SiPM_charge);
     }
+
+
 
     //### BEAM POSITION HISTOGRAM FROM INTEGRATED CHARGE ###
     DrawBeamHistogram(SiPMTVector, SiPM_charges, radius);
