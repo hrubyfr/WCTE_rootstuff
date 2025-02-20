@@ -9,6 +9,8 @@
 #include "TEllipse.h"
 #include "TMarker.h"
 #include <cstdio>
+#include "TFile.h"
+
 //___________________________HELP______FUNCTIONS_______________________________________________________
 
 double distance(double x, double y){
@@ -310,6 +312,7 @@ void TOFsim_hist(double radius, std::vector<ROOT::Math::XYPoint> points, std::ve
         FillCharge(hist, SiPMCharge[i], points[i]);
     }
     hist->Draw("colz");
+    hist->Write();
 }
 
 //____________________GET___MEAN___RANGE___AFTER___RECONSTRUCTION________________________________
@@ -365,8 +368,8 @@ std::vector<ROOT::Math::XYPoint> Reconstruct_Points(std::vector<std::vector<doub
         for (int j = 0; j < SiPMTVector.size(); ++j)
         {
             reconstructed_points[i] += PMT_signal[i][j] * SiPMTVector[j];
-            total_signal += PMT_signal[i][j];
-            reconstructed_points[i]/=total_signal;
+            /* total_signal += PMT_signal[i][j];
+            reconstructed_points[i]/=total_signal; */
         }
         // std::cout << "reconstructed point position:" << reconstructed_points[i] << endl;
         
@@ -428,7 +431,7 @@ void BeamMonitor() {
 
     //### CONSTANTS ###
 
-    double radius = 3.0;
+    double radius = 1.0;
     int point_number = 1000;
 
     //### GRID PART ###
@@ -473,13 +476,15 @@ void BeamMonitor() {
             }
             TOF1_signal.push_back(v1);
     }
-    
+    auto file = TFile::Open("output.root", "RECREATE");
     auto can1 = new TCanvas("TOF0_sim", "TOF0_sim", 1980, 800);
     can1->Divide(4, 4);
     for(int i = 0; i < TOF0_signal.size(); i++){
         TString hist_title = "SiPM " + to_string(i);
         can1->cd(i+1);
+        file->cd();
         TOFsim_hist(TOF0_radius, sim_points_TOF0, TOF0_signal[i], hist_title);
+        
     }
     can1->Update();
     auto can2 = new TCanvas("TOF1_sim", "TOF1_sim", 1980, 800);
@@ -496,6 +501,26 @@ void BeamMonitor() {
     can1->SaveAs("TOF0 SiPM response.pdf");
     can2->SaveAs("TOF1 SiPM response.pdf");
 
+    file->Close();
+
+    // auto can3 = new TCanvas();
+    // can3->Divide(2);
+    // can3->cd(1);
+    // double NDet = 16;
+    // TH1D* Yhist[NDet];
+    // TH1D* Xhist[NDet];
+    // Yhist[0] = new TH1D("", "", 101, -TOF0_radius, TOF0_radius);
+    // Xhist[0] = new TH1D("", "", 101, -TOF0_radius, TOF0_radius);
+    // auto coordx = SiPMVector[0]->GetX();
+    // auto coordy = SiPMVector[0]->GetY();
+    // for(int i = 0; i < sim_points_TOF0.size(); i++){
+    //     if(sim_points_TOF0[i].X() == TOF0_SiPM[i])
+    // }
+    
+    // for (int i = 0; i < Yhist[0].GetNBins(); i++){
+    //     Yhist[0]->SetBinContent(i, TOFsim_hist)
+    // }
+    
 
 //#########################################################
 

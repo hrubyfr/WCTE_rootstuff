@@ -45,6 +45,20 @@
         "sstream": "cpp",
         "stdexcept": "cpp",
         "streambuf": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "read_PMT.C": "cpp",
+        "calcPhotoCoverage.C": "cpp",
+        "plot_pmts.C": "cpp",
+        "read_OD.C": "cpp",
+        "hadd_wcsim_compileMe.C": "cpp",
+        "read_LIGen_OD_output.C": "cpp",
+        "sample_readfile.C": "cpp",
+        "Eventdisplay.C": "cpp",
+        "run_Eventdisplay.C": "cpp",
+        "trigger_OD.C": "cpp",
+        "testgeo.C": "cpp",
+        "pmtremove.C": "cpp",
+        "hadd_wcsim_macro.C": "cpp",
+        "convertNuPRISM.C": "cpp"
     }
 }
