@@ -10,6 +10,7 @@
 #include "Math/Point2D.h"
 #include <TGraph.h>
 #include <TCanvas.h>
+#include <TString.h>
 #include <TSystem.h>
 #include <TRandom3.h>
 #include <TArrow.h>
@@ -64,11 +65,12 @@ double Det_response(ROOT::Math::Polar2DVector SiPM_position, ROOT::Math::XYPoint
 
 //################################################ MAIN FUNCTION ###########################################
 
-void Minimize(){
+void Minimize(double sigma = 0){
 	int NDet = 16;
 	std::vector<ROOT::Math::Polar2DVector> SiPMs;
-
-	gSystem->Exec("mkdir -p ./plots/");
+	TString folder = Form("plots_blur_%.3f/", sigma);
+	gSystem->Exec(Form("mkdir -p ./plots_blur_%.3f/", sigma));
+	
 
 	double radius = 3.0;
 	for(int i = 0; i < NDet; i++){
@@ -89,7 +91,6 @@ void Minimize(){
 
 	int n_crash = 0;
 	double blur = 1;			//defining parameters used in minimization and signal blurring
-	double sigma = 0.001;
 
 	std::vector<std::vector<double>> signal_memory;
 	for(int i = 0; i < points.size(); i++){
@@ -184,7 +185,7 @@ void Minimize(){
 	c_grid->cd(2);
 	Secondary_grid->Draw("AP");
 	
-	c_grid->Print("plots/g_grid.png");
+	c_grid->Print(folder + "g_grid.png");
 	delete c_grid;
 
 	//################### arrow plots ################# 
@@ -208,7 +209,7 @@ void Minimize(){
 		arrow->SetLineColor(kBlue);
 		arrow->Draw();
 		}
-	c_arrow->Print("plots/g_arrow.png");
+	c_arrow->Print(folder + "g_arrow.png");
 	delete c_arrow;
 	
 	//########################################### printing residuals ###################################################
@@ -232,7 +233,7 @@ void Minimize(){
 	c_residual->cd(2);
 	residuals_y->Draw("TRI");
 	
-	c_residual->Print("plots/residuals.png");
+	c_residual->Print(folder + "residuals.png");
 	delete c_residual;
 
 	TH2D* h_x_residuals = new TH2D("h_x_residuals", "x Residuals;x [cm];y[cm];residual_x [cm]",
@@ -254,7 +255,7 @@ void Minimize(){
 	c_h_residuals->cd(2);
 	h_y_residuals->Draw("colz");
 	
-	c_h_residuals->Print("plots/c_h_residuals.png");
+	c_h_residuals->Print(folder + "c_h_residuals.png");
 	delete c_h_residuals;
 	
 
@@ -293,7 +294,7 @@ void Minimize(){
 	c_h_projections->cd(4);
 	h_yy_projection->Draw("hist");
 	
-	c_h_projections->Print("plots/c_h_projections.png");
+	c_h_projections->Print(folder + "c_h_projections.png");
 	delete c_h_projections;
 	TH1D* h_xx2_projection = new TH1D("h_xx2_projection", "x^2 residual projection on x axis;x [cm]; x^2 residual",
 						n_enum + 1, -radius, radius);
@@ -328,7 +329,7 @@ void Minimize(){
 	c_h2_projections->cd(4);
 	h_yy2_projection->Draw("hist");
 	
-	c_h2_projections->Print("plots/c_h2_projections.png");
+	c_h2_projections->Print(folder + "c_h2_projections.png");
 	delete c_h2_projections;
 
 	//###
@@ -353,7 +354,7 @@ void Minimize(){
 
 	h_ry->Draw("colz");
 
-	c_res->Print("plots/h_res.png");	
+	c_res->Print(folder + "h_res.png");	
 	
 	delete c_res;
 
@@ -364,7 +365,7 @@ void Minimize(){
 		h_chi2->SetBinContent(i+1, chi2_values[i]);	
 	}//end loop
 	h_chi2->Draw("hist");
-	c_chi2->Print("plots/h_chi2.png");
+	c_chi2->Print(folder + "h_chi2.png");
 	delete c_chi2;
 
 
@@ -380,7 +381,7 @@ void Minimize(){
 	g_dist->SetName("g_dist");
 	g_dist->SetTitle("distance of reconstructed point from its primary point;x[cm];y[cm];deviation[cm]"); 
 	g_dist->Draw("TRI");
-	c_dist->Print("plots/g_dist.png");
+	c_dist->Print(folder + "g_dist.png");
 	delete c_dist;
 
 	TCanvas* c_xy_chi2 = new TCanvas("", "", 1800, 900);
@@ -404,7 +405,7 @@ void Minimize(){
 	gPad->SetRightMargin(0.15);
 	gStyle->SetOptStat(0);
 	h_xy_chi2->Draw("colz");
-	c_xy_chi2->Print("plots/c_xy_chi2.png");	
+	c_xy_chi2->Print(folder + "c_xy_chi2.png");	
 	delete c_xy_chi2;
 
 	//################## COMPARISON OF WEIGHTED SUM ###########################
@@ -431,7 +432,7 @@ void Minimize(){
 
 	c_comp->cd(2);
 	Secondary_grid->Draw("ap*");
-	c_comp->Print("plots/g_comp.png");
+	c_comp->Print(folder + "g_comp.png");
 	delete c_comp;
 	
 	// ############## NEW MINIMIZATION? APPROXIMATE STARTING POSITION USING WEIGHTED CHARGE ###################
@@ -514,7 +515,7 @@ void Minimize(){
 	
 	TCanvas* c_new = new TCanvas ("", "", 1800, 900);
 	g_new->Draw("TRI");
-	c_new->Print("plots/c_new.png");
+	c_new->Print(folder + "c_new.png");
 	delete c_new;
 	
 	TCanvas* c_dist2 = new TCanvas("", "", 1800, 900);
@@ -526,6 +527,6 @@ void Minimize(){
 		g_dist2->SetPoint(i, points[i].X(), points[i].Y(), deviation);
 		}//end of loop	
 	g_dist2->Draw("TRI");
-	c_dist2->Print("plots/c_dist_new.png");
+	c_dist2->Print(folder + "c_dist_new.png");
 
 	} //end of code

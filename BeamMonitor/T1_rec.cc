@@ -3,10 +3,9 @@
 #include "Math/Functor.h"
 #include "math.h"
 
+#include <TCanvas.h>
 #include "TFile.h"
 #include "TH2D.h"
-#include "Math/Vector2D.h"
-#include "Math/Point2D.h"
 #include <TGraph.h>
 #include <TSystem.h>
 #include <TRandom3.h>
@@ -67,12 +66,12 @@ void T1_rec(){
 	
 	TRandom3 rand;
 	
-	vector<array<double, 2>> rec_coordinates;  //data arrays definition
+	vector<array<double, 2>> new_coordinates;  //data arrays definition
 	std::vector<double> chi2_values;
 	
 
 
-	int n_enum = 100;
+	int n_enum = 25;
 	auto points = get_grid(size, n_enum);	//Generating grid
 
 
@@ -118,8 +117,8 @@ void T1_rec(){
 
 		minimizer->SetVariable(0, "x", 0.0, 0.001);
 		minimizer->SetVariable(1, "y", 0.0, 0.001);
-		minimizer->SetVariableLimits(0, -3, 3);
-		minimizer->SetVariableLimits(1, -3, 3);
+		minimizer->SetVariableLimits(0, -size/2.0, size/2.0);
+		minimizer->SetVariableLimits(1, -size/2.0, size/2.0);
 				
 		minimizer->SetMaxFunctionCalls(10000);		
 
@@ -138,17 +137,61 @@ void T1_rec(){
 		//cout << "Best x: " << results[0] << "\t best y: " << results[1] << endl;    
 		
 		std::array<double, 2> help_array = {{results[0], results[1]}};
-		rec_coordinates.push_back(help_array);
+		new_coordinates.push_back(help_array);
 
 		
 	}	//end of event loop
 
 //##################################################### drawing plots #####################################################
 
-	cout << "Minimization did not converge " << n_crash << " times out of " << rec_coordinates.size() << "points"  << endl;
+	cout << "Minimization did not converge " << n_crash << " times out of " << new_coordinates.size() << "points"  << endl;
+	
+	
+	TGraph* Primary_grid = new TGraph(points.size());
+	Primary_grid->SetName("Primary_grid");
+	Primary_grid->SetTitle("Primary grid;x [cm];y [cm]");
+	for(int i = 0; i < points.size(); i++){
+		Primary_grid->SetPoint(i, points[i][0], points[i][1]);
+	}
+	
+	TGraph* Secondary_grid = new TGraph(new_coordinates.size());
 
+	Secondary_grid->SetName("Secondary_grid");
+	Secondary_grid->SetTitle("Grid after reconstruction through minimization;x [cm]; y[cm]");
+	for(int i = 0; i < new_coordinates.size(); i++){
+		Secondary_grid->SetPoint(i, new_coordinates[i][0], new_coordinates[i][1]);
+	}
+	
+	TCanvas* c_grid = new TCanvas("", "", 1800, 900);
+	c_grid->Divide(2);
+	c_grid->cd(1);
+	Primary_grid->Draw("AP*");	
+	c_grid->cd(2);
+	Secondary_grid->Draw("AP*");
+	
+	c_grid->Print("T1_plots/g_grid.png");
+	delete c_grid;
+	
+	// ################### ARROW CANVAS #########################
+	TCanvas* c_arrow = new TCanvas("", "", 1800, 900);
 	
 	
+	TGraph* g_arrow = new TGraph(new_coordinates.size());
+	
+	g_arrow->SetName("g_arrow");
+	g_arrow->SetTitle("point movement after reconstruction;x [cm]; y[cm]");
+
+	for(int i = 0; i < new_coordinates.size();i++){
+		g_arrow->SetPoint (i, new_coordinates[i][0], new_coordinates[i][1]);
+	}
+	g_arrow->Draw("ap*");
+	for (int i = 0 ; i < points.size(); i++){
+		TArrow* arrow = new TArrow(points[i][0], points[i][1], new_coordinates[i][0], new_coordinates[i][1], 0.005, "|>");
+		arrow->SetLineColor(kBlue);
+		arrow->Draw();
+		}
+	c_arrow->Print("T1_plots/g_arrow.png");
+	delete c_arrow;
 
 
 
