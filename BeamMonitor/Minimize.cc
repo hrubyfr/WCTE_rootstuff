@@ -85,7 +85,7 @@ void Minimize(double sigma = 0){
 	
 
 
-	int n_enum = 100;
+	int n_enum = 30;
 	auto points = get_grid(radius, n_enum);		//Generating grid
 
 

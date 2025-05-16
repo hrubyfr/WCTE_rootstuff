@@ -174,6 +174,9 @@ double GetMinimum_chi2(const int niter, const double tolerance, const double sig
 
 void test_minimize(double sigma = 0){
 
+	TString plots_folder = Form("new_tof_plots");
+	if(gSystem->AccessPathName(plots_folder)) gSystem->Exec("mkdir -p " + plots_folder);  // make a folder to save plots to
+	gSystem->cd(plots_folder);
 	int NDet = 16;
 	vector<array<double, 2>> scint_dimensions = {{51, 16.25}, 
 		{94, 16.25},
@@ -278,6 +281,7 @@ void test_minimize(double sigma = 0){
 	can->cd(2);
 	g_rec->Draw("AP*");
 	draw_boxes(scints);
+	can->Print("g_rec.png");
 
 	//############################################################################
 	TH2D* h_hits_init = new TH2D("h_hist_init", "Histogram of hits of primary points; x[mm]; y[mm]", 41, -scint_dimensions[4][0]/2, scint_dimensions[4][0]/2,
@@ -299,4 +303,7 @@ void test_minimize(double sigma = 0){
 	c_hist->cd(2);
 	h_hits_final->Draw("colz");
 	draw_boxes(scints);
+	c_hist->Print("recons.png");
+
+
 } //end of code

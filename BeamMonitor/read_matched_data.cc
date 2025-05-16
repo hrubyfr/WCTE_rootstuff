@@ -164,14 +164,50 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	vector<TH1D*> h_beamline_T0_tof_time(16);
 	for (int i = 0; i < 16; i++){
 		h_beamline_T0_tof_time[i] = new TH1D(Form("h_beamline_T0_tof_time_%i", i), 
-				Form("Run %i TOF between T0 and TOF-%i (VME);TOF[ns]; counts",run_number, i), 
-				160, 0, 80);
+				Form("Run %i TOF between T0 and TOF-%i (VME);time TOF - T0[ns]; counts",run_number, i), 
+				200, 30, 45);
+	}
+	vector<TH1D*> h_beamline_T1_tof_time(16);
+	for (int i = 0; i < 16; i++){
+		h_beamline_T1_tof_time[i] = new TH1D(Form("h_beamline_T1_tof_time_%i", i), 
+				Form("Run %i TOF between T1 and TOF-%i (VME);time TOF - T1[ns]; counts",run_number, i), 
+				200, 0, 40);
 	}
 	vector<TH2D*> h_beamline_T0_tof_timediff(8);
 	for (int i = 0; i < 8; i++){
 		h_beamline_T0_tof_timediff[i] = new TH2D(Form("h_beamline_T0_tof_timediff_%i", i), 
 				Form("Run %i Histogram of time hits in TOF-%i - T0 and TOF-%i - T0 (VME);time TOF-%i - T0;time TOF-%i - T0;counts", run_number, i, i+8, i, i+8),
-				100, 0, 100, 100, 0, 100);
+				200, 30, 45, 200, 30, 45);
+	}
+	vector<TH2D*> h_beamline_T1_tof_timediff(8);
+	for (int i = 0; i < 8; i++){
+		h_beamline_T1_tof_timediff[i] = new TH2D(Form("h_beamline_T1_tof_timediff_%i", i), 
+				Form("Run %i Histogram of time hits in TOF-%i - T1 and TOF-%i - T1 (VME);time TOF-%i - T1;time TOF-%i - T1;counts", run_number, i, i+8, i, i+8),
+				200, 10, 35, 200, 10, 35);
+	}
+	vector<TH1D*> h_BRB_T0_tof_time(16);
+	for (int i = 0; i < 16; i++){
+		h_BRB_T0_tof_time[i] = new TH1D(Form("h_BRB_T0_tof_time_%i", i), 
+				Form("Run %i TOF between T0 and TOF-%i (BRB);time TOF - T0[ns]; counts",run_number, i), 
+				300, 0, 100);
+	}
+	vector<TH2D*> h_BRB_T0_tof_timediff(8);
+	for (int i = 0; i < 8; i++){
+		h_BRB_T0_tof_timediff[i] = new TH2D(Form("h_BRB_T0_tof_timediff_%i", i), 
+				Form("Run %i Histogram of time hits in TOF-%i - T0 and TOF-%i - T0 (BRB);time TOF-%i - T0;time TOF-%i - T0;counts", run_number, i, i+8, i, i+8),
+				50, 0, 100, 50, 0, 100);
+	}
+	vector<TH2D*> h_BRB_tof_avg_timediff(8);
+	for (int i = 0; i < 8; i++){
+		h_BRB_tof_avg_timediff[i] = new TH2D(Form("h_BRB_tof_avg_timediff_%i", i), 
+				Form("Run %i Histogram of time hits in TOF-%i - TOF_avg and TOF-%i - TOF_avg (BRB);time TOF-%i - TOF_avg;time TOF-%i - TOF_avg;counts", run_number, i, i+8, i, i+8),
+				100, -1, 1, 100, -1, 1);
+	}
+	vector<TH1D*> h_BRB_avg_tof_tof_time(16);
+	for (int i = 0; i < 16; i++){
+		h_BRB_avg_tof_tof_time[i] = new TH1D(Form("h_BRB_avg_tof_tof_time_%i", i), 
+				Form("Run %i TOF between avg_tof and TOF-%i (BRB);time TOF - avg_tof[ns]; counts",run_number, i), 
+				100, -5, 5);
 	}
 
 	// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -197,8 +233,9 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	vector<vector<vector<double>>> beamline_pmt_time(nentries, vector<vector<double>>(16));
 	vector<vector<vector<double>>> beamline_T0_time(nentries, vector<vector<double>>(4));
 	vector<vector<vector<double>>> beamline_T1_time(nentries, vector<vector<double>>(4));
-
-
+	vector<vector<double>> TDCT0_hits(nentries);
+	vector<vector<double>> TDCT1_hits(nentries);
+	
 
 	for(long ievent = 0; ievent < nentries; ievent++){
 		tree->GetEntry(ievent);
@@ -342,6 +379,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		double Ntrigs_1 = 0;
 		for (int i = 0; i < beamline_pmt_tdc_ids->size(); i++){
 			pmt_ID = beamline_pmt_tdc_ids->at(i);
+			
 			if (pmt_ID == 31) {
 				bm_trig_time_0 = beamline_pmt_tdc_times->at(i); 
 				h_beamline_trigger_time_0->Fill(bm_trig_time_0);
@@ -355,6 +393,8 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		}
 		if (Ntrigs_1 > 1 || Ntrigs_0 > 1) continue; 
 
+		TDCT0_hits[ievent].push_back(bm_trig_time_0);
+		TDCT1_hits[ievent].push_back(bm_trig_time_1);
 
 
 		for (int i = 0; i < beamline_pmt_tdc_ids->size(); i++){
@@ -362,14 +402,14 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 			double pmt_time = beamline_pmt_tdc_times->at(i);
 
 			if (T0_beamline_pmt_ids.count(pmt_ID)){
+				h_beamline_T0_times[pmt_ID]->Fill(pmt_time);
 				if (pmt_time > 150 || pmt_time < 40) continue;
 				beamline_T0_time[ievent][pmt_ID].push_back(pmt_time);
-				h_beamline_T0_times[pmt_ID]->Fill(pmt_time);
 			}
 			else if (T1_beamline_pmt_ids.count(pmt_ID)){
+				h_beamline_T1_times[pmt_ID-4]->Fill(pmt_time);
 				if (pmt_time > 100 || pmt_time < 50) continue;
 				beamline_T1_time[ievent][pmt_ID-4].push_back(pmt_time);
-				h_beamline_T1_times[pmt_ID-4]->Fill(pmt_time);
 			}
 
 			// ############################ TOF analysis #############################
@@ -474,7 +514,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	// ######################### ANALYSIS OF OPPOSITE SiPMs ###################################
 	cout << endl;
 	cout << "Starting analysis of SiPM pairs" << endl;
-	int cout_events = 100;
+	int cout_events = 0;
 
 	for (int event = 0; event < beamline_pmt_time.size(); event++){
 		for (int iscint = 0; iscint < 8; iscint++){
@@ -502,6 +542,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 			cout << endl; 
 			cout << "########################### event " << ievent << " ###################" << endl;
 		}
+		
 		double avg_time_T0 = 0;
 		double avg_time_T1 = 0;
 		int npmt_hit_T0 = 0;
@@ -530,7 +571,8 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		h_beamline_T0_counts->Fill(npmt_hit_T0);
 		for (int i = 0; i < beamline_pmt_time[ievent].size() ; i++){
 			for(int j = 0; j < beamline_pmt_time[ievent][i].size() ; j++){
-				h_beamline_T0_tof_time[i]->Fill(beamline_pmt_time[ievent][i][j] - avg_time_T0);
+				h_beamline_T0_tof_time[i]->Fill(beamline_pmt_time[ievent][i][j] - TDCT1_hits[ievent][0] - (avg_time_T0 - TDCT0_hits[ievent][0]));
+				h_beamline_T1_tof_time[i]->Fill(beamline_pmt_time[ievent][i][j] - TDCT1_hits[ievent][0] - (avg_time_T1 - TDCT0_hits[ievent][0]));
 			}
 		}
 		for (int i = 0; i < beamline_pmt_time[ievent].size() /2 ; i++){
@@ -538,8 +580,12 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 				if (ievent < cout_events) cout << "SiPM " << i << " time: " << beamline_pmt_time[ievent][i][j] << endl;
 				for(int k = 0; k < beamline_pmt_time[ievent][i + 8].size(); k++){
 					if (ievent < cout_events) cout << "SiPM " << i+8 << " time: " << beamline_pmt_time[ievent][i+8][k] << endl;
-
-					h_beamline_T0_tof_timediff[i]->Fill(beamline_pmt_time[ievent][i][j]-avg_time_T0, beamline_pmt_time[ievent][i+8][k]-avg_time_T0);
+					double tof0_trig_time = beamline_pmt_time[ievent][i][j] - TDCT1_hits[ievent][0];
+					double tof1_trig_time = beamline_pmt_time[ievent][i+8][k] - TDCT1_hits[ievent][0];
+					double T0_trig_time = avg_time_T0 - TDCT0_hits[ievent][0];
+					double T1_trig_time = avg_time_T1 - TDCT0_hits[ievent][0];
+					h_beamline_T0_tof_timediff[i]->Fill(tof0_trig_time - T0_trig_time, tof1_trig_time - T0_trig_time);
+					h_beamline_T1_tof_timediff[i]->Fill(tof0_trig_time - T1_trig_time, tof1_trig_time - T1_trig_time);
 					if (ievent < cout_events){
 						cout << "Time of flight between T0 and TOF-"<< i << " is " << beamline_pmt_time[ievent][i][j] - avg_time_T0 << endl;
 						cout << "Time of flight between T0 and TOF-"<< i+8 << " is " << beamline_pmt_time[ievent][i+8][k] - avg_time_T0 << endl;
@@ -550,6 +596,9 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	}
 
 	cout << "Finished VME data analysis, starting BRB data analysis" << endl;
+
+
+	// ######################## BRB opposite SIPMs analysis ######################################
 
 	for (int event = 0; event < BRB_pmt_time.size(); event++){
 		for (int iscint = 0; iscint < 8; iscint++){
@@ -564,14 +613,43 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 			}
 		}
 	}
-	for (int ievent = 0; ievent < BRB_pmt_time.size(); ievent++){ 
+	for (int ievent = 0; ievent < BRB_pmt_time.size(); ievent++){
+		if (TDCT0_hits[ievent].size() < 1) continue;
+		double avg_time_T0 = 0;
+		int npmt_hit_T0 = 0;
+		for (int i = 0; i < beamline_T0_time[ievent].size(); i++){
+			for (int j = 0; j < beamline_T0_time[ievent][i].size(); j++){
+				avg_time_T0 += beamline_T0_time[ievent][i][j];
+				npmt_hit_T0++;
+			}
+		}
+		avg_time_T0 /= npmt_hit_T0;
+		double T0_time = avg_time_T0 - TDCT0_hits[ievent][0];
+		double avg_sipm_time;
+		for (int iscint = 0; iscint < 8; iscint++){
+			for (int i = 0; i < BRB_pmt_time[ievent][iscint].size(); i++){
+				if (BRB_pmt_time[ievent][iscint].size() < 1) continue;
+				double sipm_time_a = BRB_pmt_time[ievent][iscint][i];
+				for (int j = 0; j < BRB_pmt_time[ievent][iscint+8].size(); j++){
+					double sipm_time_b = BRB_pmt_time[ievent][iscint+8][j];
+					avg_sipm_time = (sipm_time_a + sipm_time_b)/2;
+					//cout << "h_BRB_T0_tof_timediff content: " << sipm_time_a - T0_time << " " << sipm_time_b - T0_time << endl;
+					h_BRB_T0_tof_timediff[iscint]->Fill(sipm_time_a - T0_time, sipm_time_b - T0_time);
+					h_BRB_tof_avg_timediff[iscint]->Fill(sipm_time_a - avg_sipm_time, sipm_time_b - avg_sipm_time);
+					
+				}
+			}
+		}
 		for (int iPM = 0; iPM < BRB_pmt_time[ievent].size(); iPM++){
 			for (int i = 0; i < BRB_pmt_time[ievent][iPM].size(); i++){
+				//cout << "h_BRB_T0_tof_times content: " << BRB_pmt_time[ievent][iPM][i] - T0_time << endl;
 				h_BRB_tof_times[iPM]->Fill(BRB_pmt_time[ievent][iPM][i]);
+				h_BRB_T0_tof_time[iPM]->Fill(BRB_pmt_time[ievent][iPM][i] - T0_time);
+				h_BRB_avg_tof_tof_time[iPM]->Fill(BRB_pmt_time[ievent][iPM][i] - avg_sipm_time);
 			}
 		}
 	}
-
+	cout << "Analysis done, now drawing histograms" << endl;
 
 	// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
@@ -626,6 +704,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 
 	TCanvas* c_T0_avg_times = new TCanvas("", "", 900, 900);
 	h_beamline_T0_avgtime->Draw("hist");
+
 	TCanvas* c_T0_counts = new TCanvas("", "", 900, 900);
 	h_beamline_T0_counts->Draw("hist");
 	c_T0_counts->Print("h_T0_counts.pdf");
@@ -636,6 +715,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		c_T0_times->cd(i+1);
 		h_beamline_T0_times[i]->Draw("hist");
 	}
+	c_T0_times->Print("h_T0_times.pdf");
 
 	TCanvas* c_T1_times = new TCanvas("", "", 1800, 900);
 	c_T1_times->Divide(2,2);
@@ -643,6 +723,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		c_T1_times->cd(i+1);
 		h_beamline_T1_times[i]->Draw("hist");
 	}
+	c_T1_times->Print("h_T1_times.pdf");
 
 	TCanvas* c_T0_tof_difftimes = new TCanvas("", "", 1800, 900);
 	c_T0_tof_difftimes->Divide(4,2);
@@ -651,6 +732,14 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		h_beamline_T0_tof_timediff[i]->Draw("colz");
 	}
 	c_T0_tof_difftimes->Print("h_T0_tof_difftimes.pdf");
+
+	TCanvas* c_T1_tof_difftimes = new TCanvas("", "", 1800, 900);
+	c_T1_tof_difftimes->Divide(4,2);
+	for (int i = 0; i < 8; i++){
+		c_T1_tof_difftimes->cd(i+1);
+		h_beamline_T1_tof_timediff[i]->Draw("colz");
+	}
+	c_T1_tof_difftimes->Print("h_T1_tof_difftimes.pdf");
 
 	double e_time = 6.5/3e8 * std::sqrt(1.0 + 0.511/260.0) * pow(10, 9);
 	cout << "e_time is " << e_time << endl;
@@ -676,13 +765,52 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	}
 	c_T0_tof_times->Print("h_T0_tof_times.pdf");
 
+	cout << "pi_time is " << pi_time << endl;
+	TCanvas* c_T1_tof_times = new TCanvas("", "", 1800, 900);
+	c_T1_tof_times->Divide(4,4);
+	for (int i = 0; i < 16; i++){
+		c_T1_tof_times->cd(i+1);
+		h_beamline_T1_tof_time[i]->Draw("hist");
+	}
+	c_T1_tof_times->Print("h_T1_tof_times.pdf");
+
 	TCanvas* c_T0_T1_times = new TCanvas("", "", 900, 900);
 	h_beamline_T0_T1_time->Draw("hist");
 	c_T0_T1_times->Print("h_T0_T1_time.pdf");
 
+	TCanvas* c_BRB_T0_tof_times = new TCanvas("c_BRB_T0_tof_times", "c_BRB_T0_tof_times", 1800, 900);
+	c_BRB_T0_tof_times->Divide(4, 4);
+	for (int i = 0; i < 16; i++){
+		c_BRB_T0_tof_times->cd(i+1);
+		h_BRB_T0_tof_time[i]->Draw("hist");
+	}
+
+	c_BRB_T0_tof_times->Print("h_BRB_T0_tof_times.pdf");
+
+	TCanvas* c_BRB_T0_tof_difftimes = new TCanvas("c_BRB_T0_tof_difftimes", "c_BRB_T0_tof_difftimes", 1800, 900);
+	c_BRB_T0_tof_difftimes->Divide(4, 2);
+	for (int i = 0; i < 8; i++){
+		c_BRB_T0_tof_difftimes->cd(i+1);
+		h_BRB_T0_tof_timediff[i]->Draw("colz");
+	}
+	c_BRB_T0_tof_difftimes->Print("h_BRB_T0_tof_difftimes.pdf");
+
+	TCanvas* c_BRB_tof_avg_difftimes = new TCanvas("c_BRB_tof_difftimes", "c_BRB_tof_difftimes", 1800, 900);
+	c_BRB_tof_avg_difftimes->Divide(4, 2);
+	for (int i = 0; i < 8; i++){
+		c_BRB_tof_avg_difftimes->cd(i+1);
+		h_BRB_tof_avg_timediff[i]->Draw("colz");
+	}
+	c_BRB_tof_avg_difftimes->Print("h_BRB_tof_difftimes.pdf");
 
 
+	TCanvas* c_BRB_avg_tof_tof_times = new TCanvas("c_BRB_avg_tof_tof_times", "c_BRB_avg_tof_tof_times", 1800, 900);
+	c_BRB_avg_tof_tof_times->Divide(4, 4);
+	for (int i = 0; i < 16; i++){
+		c_BRB_avg_tof_tof_times->cd(i+1);
+		h_BRB_avg_tof_tof_time[i]->Draw("hist");
+	}
 
-
+	c_BRB_avg_tof_tof_times->Print("h_BRB_avg_tof_tof_times.pdf");
 
 } //end of code
