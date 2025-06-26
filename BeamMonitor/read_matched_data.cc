@@ -44,11 +44,35 @@ using std::endl;
 using ROOT::Math::XYVector;
 using std::set;
 
+void draw_boxes(vector<TBox*> boxes){
+	for(int i = 0; i < boxes.size(); i++){
+		boxes[i]->SetFillStyle(0);
+		boxes[i]->SetLineColor(kBlack);
+		boxes[i]->Draw("same");
+	}
+}
+
+double calculate_speed(double sigma_tot1, double sigma_tot2, double length1, double length2){
+	double v_eff;
+	v_eff = sqrt(((length1 * length1 - length2 * length2) / (3 * sigma_tot1 * sigma_tot1 - 3 * sigma_tot2 * sigma_tot2)));
+	return v_eff;
+}
+
 //################################################ MAIN FUNCTION ###########################################
 
 
-void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data/WCTE_offline_R1361S0.root"){
+void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data/WCTE_offline_R1362S0_VME1443.root"){
 
+	vector<std::array<double, 2>> scint_dimensions = {{51, 16.25}, 
+		{94, 16.25},
+		{112, 16.25},
+		{123, 16.25},
+		{123, 16.25},
+		{112, 16.25},
+		{94, 16.25},
+		{51, 16.25}
+	};
+	vector<double> start_y = {-58.875, -42.125, -25.375, -8.625, 8.625, 25.375, 42.125, 58.875};
 	bool apply_cuts = true;  // Set true if we want cuts during analysis
 	int verbose = 0;
 	
@@ -209,7 +233,40 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 				Form("Run %i TOF between avg_tof and TOF-%i (BRB);time TOF - avg_tof[ns]; counts",run_number, i), 
 				100, -5, 5);
 	}
+	vector<TH2D*> h_BRB_tof_avg_chargediff(8);
+	for (int i = 0; i < 8; i++){
+		h_BRB_tof_avg_chargediff[i] = new TH2D(Form("h_BRB_tof_avg_chargediff_%i", i), 
+				Form("Run %i Histogram of charge hits in TOF-%i - TOF_avg and TOF-%i - TOF_avg (BRB);charge TOF-%i - TOF_avg;charge TOF-%i - TOF_avg;counts", run_number, i, i+8, i, i+8),
+				100, -1000, 1000, 100, -1000, 1000);
+	}
+	TH2D* h_hits = new TH2D("h_hits", "Histogram of hits in TOF; x[mm]; y[mm]", 100, -scint_dimensions[4][0]/2, scint_dimensions[4][0]/2,
+				8, start_y[0] - scint_dimensions[0][1]/2, start_y[7] + scint_dimensions[0][1]/2);
 
+	vector<TH1D*> h_BRB_q_diff(8);
+	for(int i = 0; i < 8; i++){
+		h_BRB_q_diff[i] = new TH1D(Form("tof_q_diff_%i", i), Form("Run %i diferrence of charge hits in TOF-%i - TOF-%i; Charge TOF-%i - TOF %i ; counts", 
+					run_number, i, i+8, i, i+8), 400, -4000, 4000);
+	}
+	vector<TH2D*> h_BRB_tof_chargediff(8);
+	for (int i = 0; i < 8; i++){
+		h_BRB_tof_chargediff[i] = new TH2D(Form("h_BRB_tof_chargediff_%i", i), 
+				Form("Run %i Histogram of charge hits in TOF-%i and TOF-%i (BRB);charge TOF-%i;charge TOF-%i;counts", run_number, i, i+8, i, i+8),
+				100, 0, 6000, 100, 0, 6000);
+	}
+	vector<TH2D*> h_BRB_total_avg_time_diff(8);
+	for(int i = 0; i < 8; i++){
+		h_BRB_total_avg_time_diff[i] = new TH2D(Form("tof_total_avg_time_diff_%i", i), Form("Run %i diferrence of time from average time hit in TOF-%i and TOF-%i; Time TOF-%i - avg; Time Tof-%i - avg; counts", 
+					run_number, i, i+8, i, i+8), 100, -10, 10, 100, -10, 10);
+	}
+	vector<TH1D*> h_charge(16);
+	for (int i = 0; i < 16; i++){
+		h_charge[i] = new TH1D(Form("h_charge_%i", i), 
+				Form("Run %i TOF charge on TOF-%i;charge; counts",run_number, i), 
+				100, 0, 6000);
+	}
+	TH1D* h_sigma;
+	h_sigma = new TH1D("h_sigma", Form("Run %i Time sigmas of scintillators; scintillator length[cm]; sigma[ns]",run_number), 
+				16, 0, 8); 
 	// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 	int verb = 1000;
 
@@ -225,7 +282,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	std::map<int, bool> HC_hits;
 	HC_hits[9] = false;				//Fill map with HC IDs - we want to exclude all event when HCs were hit (9 - HC-0; 10 - HC-1)
 	HC_hits[10] = false;
-	
+
 	// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 	vector<vector<vector<float>>> BRB_pmt_charge(nentries, vector<vector<float>>(16));
@@ -235,7 +292,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	vector<vector<vector<double>>> beamline_T1_time(nentries, vector<vector<double>>(4));
 	vector<vector<double>> TDCT0_hits(nentries);
 	vector<vector<double>> TDCT1_hits(nentries);
-	
+
 
 	for(long ievent = 0; ievent < nentries; ievent++){
 		tree->GetEntry(ievent);
@@ -253,21 +310,21 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 
 		bool pass_cut = true;
 		if (verbose){
-		cout << endl;
-		cout << "#####################################" << endl;
-		cout << "Event " << ievent << " beamline data:" << endl;
-		cout << "number of TDC event IDs: " << beamline_pmt_tdc_ids->size() << " Number of TDC events: " << beamline_pmt_tdc_times->size() << endl; 
-		cout << "number of QDC event IDs: " << beamline_pmt_qdc_ids->size() << " Number of QDC events: " << beamline_pmt_qdc_charge->size() << endl; 
-		cout << " TDC channels: ";
-		for (int i = 0; i < beamline_pmt_tdc_ids->size(); i++){
-			cout << beamline_pmt_tdc_ids->at(i) << " ";
-		}
-		cout << endl;
-		cout << " QDC channels: ";
-		for (int i = 0; i < beamline_pmt_qdc_ids->size(); i++){
-			cout << beamline_pmt_qdc_ids->at(i) << " ";
-		}
-		cout << endl;
+			cout << endl;
+			cout << "#####################################" << endl;
+			cout << "Event " << ievent << " beamline data:" << endl;
+			cout << "number of TDC event IDs: " << beamline_pmt_tdc_ids->size() << " Number of TDC events: " << beamline_pmt_tdc_times->size() << endl; 
+			cout << "number of QDC event IDs: " << beamline_pmt_qdc_ids->size() << " Number of QDC events: " << beamline_pmt_qdc_charge->size() << endl; 
+			cout << " TDC channels: ";
+			for (int i = 0; i < beamline_pmt_tdc_ids->size(); i++){
+				cout << beamline_pmt_tdc_ids->at(i) << " ";
+			}
+			cout << endl;
+			cout << " QDC channels: ";
+			for (int i = 0; i < beamline_pmt_qdc_ids->size(); i++){
+				cout << beamline_pmt_qdc_ids->at(i) << " ";
+			}
+			cout << endl;
 		}	
 		if(apply_cuts){ //set if we want to apply cuts for this analysis
 			for (const auto& [ID, was_hit] : Trigger_hits){
@@ -277,7 +334,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 				HC_hits[ID] = false;
 			}
 
-			
+
 			for (int i = 0; i < beamline_pmt_tdc_ids->size(); i++){
 				int tdc_ID = beamline_pmt_tdc_ids->at(i);
 				// ######################## T0 CUTS ######################################
@@ -364,7 +421,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 
 		if (!pass_cut) continue;
 		// Set trigger times for the beam monitors cards
-		
+
 		// ####################### defining useful variables for analysis #######################
 
 		double trigger_time[3];
@@ -379,7 +436,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		double Ntrigs_1 = 0;
 		for (int i = 0; i < beamline_pmt_tdc_ids->size(); i++){
 			pmt_ID = beamline_pmt_tdc_ids->at(i);
-			
+
 			if (pmt_ID == 31) {
 				bm_trig_time_0 = beamline_pmt_tdc_times->at(i); 
 				h_beamline_trigger_time_0->Fill(bm_trig_time_0);
@@ -415,7 +472,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 			// ############################ TOF analysis #############################
 			else if (tof_beamline_pmt_ids.count(pmt_ID)){
 				beamline_pmt_time[ievent][pmt_ID - 48].push_back(pmt_time);
-			
+
 			}
 
 			// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -442,73 +499,6 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		} //end loop over mpmt card numbers
 
 
-		/*
-		   for (int i = 0; i < hit_mpmt_card_ids->size(); i++){
-		   if(hit_mpmt_card_ids->at(i) == 132 && (tof_pmt_ids.find(hit_pmt_channel_ids->at(i)) != tof_pmt_ids.end())){
-		   double diff_time = hit_pmt_times->at(i) - trigger_time[2];
-		   tof_minus_trigger->Fill(diff_time);
-		   double T0_tof_time = diff_time - T0_avg_time;
-		   double T1_tof_time = diff_time - T1_avg_time;
-		   T0_TOF_times->Fill(T0_tof_time);
-		   T1_TOF_times->Fill(T1_tof_time);
-		   }
-		   }
-
-		   for(int i = 0; i < hit_mpmt_card_ids->size(); i++){
-		   int pmt_id = hit_pmt_channel_ids->at(i);
-		   int mpmt_id = hit_mpmt_card_ids->at(i);
-		   if (beam_cards.count(mpmt_id)){
-		   if(mpmt_id == 130){
-		   card1_hist->Fill(pmt_id);
-		   } //do things for mpmt card 130
-		   else if(mpmt_id == 131){
-		   card2_hist->Fill(pmt_id);
-		   }//do things for mpmt card 131
-		   else if(hit_mpmt_card_ids->at(i) == 132){
-		   card3_hist->Fill(pmt_id);
-
-
-		   pmt_charge[hit_pmt_channel_ids->at(i)].push_back(hit_pmt_charges->at(i));
-		   pmt_time[hit_pmt_channel_ids->at(i)].push_back(hit_pmt_times->at(i) - trigger_time[2]);
-		   if (pmt_charge[hit_pmt_channel_ids->at(i)].size() != pmt_time[hit_pmt_channel_ids->at(i)].size()) cout << "Charge and times sizes are not equal!" << endl;
-		   }//do things for mpmt card 132
-		   } //end if over cards 130 through 132
-		   } //end loop over mpmt card numbers
-		     // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-		     // ################################## WAVEFORM ANALYSIS ############################# 
-		     double waveform_trigger;
-
-		     int N_trigs = 0;
-		     for (int i = 0; i < pmt_waveform_times->size(); i++){
-		     int pmt = pmt_waveform_pmt_channel_ids->at(i);
-		     if (pmt_waveform_mpmt_card_ids->at(i) == 132 && pmt_waveform_pmt_channel_ids->at(i) == 19){
-		     waveform_trigger = pmt_waveform_times->at(i);
-		     h_132_trigger_wftime->Fill(pmt_waveform_times->at(i));
-		     N_trigs++;
-		     }
-		     }
-		     if(N_trigs < 1) continue;
-
-		     for (int i = 0; i < pmt_waveforms->size(); i++){
-		     int mpmt_id = pmt_waveform_mpmt_card_ids->at(i);
-		     int pmt_id = pmt_waveform_pmt_channel_ids->at(i);
-		     double waveform_time = pmt_waveform_times->at(i);
-		     if (mpmt_id == 132 && tof_pmt_ids.count(pmt_id)){
-		     int hist_id = std::distance(tof_pmt_ids.begin(), tof_pmt_ids.find(pmt_id));
-		     double diff_time = waveform_time - waveform_trigger;
-
-		     tof_waveform_times[hist_id]->Fill(pmt_waveform_times->at(i) - waveform_trigger);
-		     if (diff_time > -155 && diff_time < -150){
-		     auto& waveform = pmt_waveforms->at(i);
-		     for (int itime = 0; itime < waveform.size(); itime++){
-		     tof_heatmaps[hist_id]->Fill(itime, waveform.at(itime));
-		     }
-		     }
-		     }
-		     } // end loop over waveforms
-		       // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-		       */
 	}// end of loop over events
 
 	// ######################### ANALYSIS OF OPPOSITE SiPMs ###################################
@@ -542,7 +532,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 			cout << endl; 
 			cout << "########################### event " << ievent << " ###################" << endl;
 		}
-		
+
 		double avg_time_T0 = 0;
 		double avg_time_T1 = 0;
 		int npmt_hit_T0 = 0;
@@ -599,6 +589,23 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 
 
 	// ######################## BRB opposite SIPMs analysis ######################################
+	
+	vector<vector<double>> scint_hits(8);
+
+	for (int event = 0; event < BRB_pmt_time.size(); event++){
+		for (int iscint = 0; iscint < 8; iscint++){
+			for (int i = 0; i < BRB_pmt_time[event][iscint].size(); i++){
+				double sipm_time_a = BRB_pmt_time[event][iscint][i];
+				if (sipm_time_a < -165 || sipm_time_a > -145) continue;
+				scint_hits[iscint].push_back(sipm_time_a);
+				for (int j = 0; j < BRB_pmt_time[event][iscint+8].size(); j++){
+					double sipm_time_b = BRB_pmt_time[event][iscint+8][j];
+					if (sipm_time_b < -165 || sipm_time_b > -145) continue;
+					scint_hits[iscint].push_back(sipm_time_b);
+				}
+			}
+		}
+	}
 
 	for (int event = 0; event < BRB_pmt_time.size(); event++){
 		for (int iscint = 0; iscint < 8; iscint++){
@@ -609,11 +616,24 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 					double sipm_time_b = BRB_pmt_time[event][iscint+8][j];
 					if (sipm_time_b < -165 || sipm_time_b > -145) continue;
 					h_BRB_diff_time[iscint]->Fill(sipm_time_a - sipm_time_b);
+
 				}
 			}
 		}
 	}
+	double total_avg_time[8];
+	for (int iscint = 0; iscint < 8; iscint++){
+		for (int i = 0; i < scint_hits[iscint].size(); i++){
+			total_avg_time[iscint] += scint_hits[iscint][i];
+			
+		}
+		total_avg_time[iscint] /= scint_hits[iscint].size();
+	}
 	for (int ievent = 0; ievent < BRB_pmt_time.size(); ievent++){
+		if (verbose){
+			cout << endl;
+			cout << " ##################  EVENT " << ievent << "  ######################" << endl;
+		}
 		if (TDCT0_hits[ievent].size() < 1) continue;
 		double avg_time_T0 = 0;
 		int npmt_hit_T0 = 0;
@@ -636,7 +656,9 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 					//cout << "h_BRB_T0_tof_timediff content: " << sipm_time_a - T0_time << " " << sipm_time_b - T0_time << endl;
 					h_BRB_T0_tof_timediff[iscint]->Fill(sipm_time_a - T0_time, sipm_time_b - T0_time);
 					h_BRB_tof_avg_timediff[iscint]->Fill(sipm_time_a - avg_sipm_time, sipm_time_b - avg_sipm_time);
-					
+					h_BRB_total_avg_time_diff[iscint]->Fill(sipm_time_a - total_avg_time[iscint], sipm_time_b - total_avg_time[iscint]);
+					double position = (sipm_time_a - sipm_time_b) * 300.0 / 1.58 / 2.0 ;
+					h_hits->Fill(position, start_y[iscint]);
 				}
 			}
 		}
@@ -648,7 +670,36 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 				h_BRB_avg_tof_tof_time[iPM]->Fill(BRB_pmt_time[ievent][iPM][i] - avg_sipm_time);
 			}
 		}
+		if(verbose) cout << "Size of charge vector" << BRB_pmt_charge[ievent].size() << endl;
+		for (int iscint = 0; iscint < BRB_pmt_charge[ievent].size() / 2; iscint++){
+			if (verbose) cout << "accessing " << iscint << " scintillator" << endl;
+			if (verbose) cout << "sipm_a size: " << BRB_pmt_charge[ievent][iscint].size() << endl;
+			for (int sipm_a = 0; sipm_a < BRB_pmt_charge[ievent][iscint].size(); sipm_a++){
+				float sipm_a_charge = BRB_pmt_charge[ievent][iscint][sipm_a];
+				if (verbose) cout << "sipm_b size: " << BRB_pmt_charge[ievent][iscint + 8].size() << endl;
+				for (int sipm_b = 0; sipm_b < BRB_pmt_charge[ievent][iscint + 8].size(); sipm_b++){
+					float sipm_b_charge = BRB_pmt_charge[ievent][iscint+8][sipm_b];
+					float avg_charge = (sipm_b_charge + sipm_a_charge) / 2;
+					/*if (iscint + 8 == 10){
+						if(sipm_a_charge < 800 || sipm_b_charge < 400) continue;
+					}
+					else if (sipm_a_charge < 800 || sipm_b_charge < 600) continue;
+					*/
+					h_BRB_tof_avg_chargediff[iscint]->Fill(sipm_a_charge - avg_charge, sipm_b_charge - avg_charge);
+					if (verbose) cout << "SiPM_A charge: " << sipm_a_charge << " SiPM_B charge: " << sipm_b_charge << endl;
+					h_BRB_q_diff[iscint]->Fill(sipm_a_charge - sipm_b_charge);
+					h_BRB_tof_chargediff[iscint]->Fill(sipm_a_charge, sipm_b_charge);
+				}
+			}
+		}
+		for (int iPM = 0; iPM < 16; iPM++){
+			for (int i = 0; i < BRB_pmt_charge[ievent][iPM].size(); i++){
+				h_charge[iPM]->Fill(BRB_pmt_charge[ievent][iPM][i]);
+			}
+		}
 	}
+
+
 	cout << "Analysis done, now drawing histograms" << endl;
 
 	// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -676,6 +727,8 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	}
 
 
+	vector<double> fit_BRB_sigma(8);
+	vector<double> fit_BRB_sigma_error(8);
 	TCanvas* c_bm_diff_times = new TCanvas("", "", 1800, 900);
 	c_bm_diff_times->Divide(4, 2);
 	for (int i = 0; i < 8; i++){
@@ -693,14 +746,40 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	c_brb_diff_times->Divide(4, 2);
 	for (int i = 0; i < 8; i++){
 		c_brb_diff_times->cd(i+1);
-		double x_max = h_BRB_diff_time[i]->GetBinCenter(h_beamline_diff_time[i]->GetMaximumBin());
+		double x_max = h_BRB_diff_time[i]->GetBinCenter(h_BRB_diff_time[i]->GetMaximumBin());
 		h_BRB_diff_time[i]->Fit("gaus", "", "RS", x_max - 2, x_max + 2);
 		TF1* fit_fun = h_BRB_diff_time [i]->GetFunction("gaus");
 		h_BRB_diff_time[i]->Draw("hist");
 		fit_fun->Draw("same");
+		fit_BRB_sigma[i] = fit_fun->GetParameter(2);
+		fit_BRB_sigma_error[i] = fit_fun->GetParError(2);
 	}
 	c_brb_diff_times->Print("h_brb_diff_times.pdf");
 	c_brb_diff_times->Close();
+	
+	TCanvas* c_brb_sigmas = new TCanvas("c_brb_sigmas", "c_brb_sigmas", 1800, 900);
+	for(int i = 0; i < 8; i+=2){
+		h_sigma->SetBinContent(2*i + 1, fit_BRB_sigma[i]);
+		h_sigma->SetBinContent(2*i + 3, fit_BRB_sigma[7 - i]);
+		h_sigma->SetBinError(2*i + 1, fit_BRB_sigma_error[i]);
+		h_sigma->SetBinError(2*i + 3, fit_BRB_sigma_error[7 - i]);
+		TString label = Form("scintillator %i and %i", i/2, 7 - i/2);
+		h_sigma->GetXaxis()->SetBinLabel(2*i + 1, label);
+	}
+	h_sigma->Draw("histe");
+
+
+	vector<double> v_eff;
+	for (int i = 0; i < 8; i++){
+		for (int j = 0; j < 8; j++){
+			if(i!=j) v_eff.push_back(calculate_speed(fit_BRB_sigma[i], fit_BRB_sigma[j], scint_dimensions[i][0], scint_dimensions[j][0]));
+			
+		}
+	}
+	for (int i = 0; i < v_eff.size(); i++){
+		cout << "Effective speeds: " << v_eff[i] << endl;
+	}
+
 
 	TCanvas* c_T0_avg_times = new TCanvas("", "", 900, 900);
 	h_beamline_T0_avgtime->Draw("hist");
@@ -812,5 +891,62 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	}
 
 	c_BRB_avg_tof_tof_times->Print("h_BRB_avg_tof_tof_times.pdf");
+
+	vector<TBox*> scints;
+	for(int i = 0; i < scint_dimensions.size(); i++){
+		TBox* help_box = new TBox(-scint_dimensions[i][0]/2, start_y[i] - scint_dimensions[i][1]/2, scint_dimensions[i][0]/2, start_y[i] + scint_dimensions[i][1]/2) ;
+		scints.push_back(help_box);
+	}//end create scintillator tiles
+	 //
+	TCanvas* c_BRB_tof_avg_diffcharges = new TCanvas("c_BRB_tof_diffcharges", "c_BRB_tof_diffcharges", 1800, 900);
+	c_BRB_tof_avg_diffcharges->Divide(4, 2);
+	for (int i = 0; i < 8; i++){
+		c_BRB_tof_avg_diffcharges->cd(i+1);
+		h_BRB_tof_avg_chargediff[i]->Draw("colz");
+	}
+	c_BRB_tof_avg_diffcharges->Print("h_BRB_tof_diffcharges.pdf");
+
+	TCanvas* c_BRB_q_diff= new TCanvas("", "", 1800, 900);
+	c_BRB_q_diff->Divide(4, 2);
+	for (int i = 0; i < 8; i++){
+		c_BRB_q_diff->cd(i+1);
+		h_BRB_q_diff[i]->Draw("colz");
+	}
+	c_BRB_q_diff->Print("h_BRB_tof_diffcharges.pdf");
+
+	TCanvas* c_BRB_chargediff= new TCanvas("", "", 1800, 900);
+	c_BRB_chargediff->Divide(4, 2);
+	for (int i = 0; i < 8; i++){
+		c_BRB_chargediff->cd(i+1);
+		h_BRB_tof_chargediff[i]->Draw("colz");
+	}
+	c_BRB_chargediff->Print("h_BRB_tof_chargediffs.pdf");
+
+
+	TCanvas* c_BRB_total_avg_time_diff= new TCanvas("", "", 1800, 900);
+	c_BRB_total_avg_time_diff->Divide(4, 2);
+	for (int i = 0; i < 8; i++){
+		c_BRB_total_avg_time_diff->cd(i+1);
+		h_BRB_total_avg_time_diff[i]->Draw("colz");
+	}
+	c_BRB_total_avg_time_diff->Print("h_BRB_tof_total_avg_time_diffs.pdf");
+
+
+
+	TCanvas* c_charges = new TCanvas("c_charges", "c_charges", 1800, 900);
+	c_charges->Divide(4, 4);
+	for (int i = 0; i < 16; i++){
+		c_charges->cd(i+1);
+		h_charge[i]->Draw("hist");
+	}
+
+	c_charges->Print("h_charges.pdf");
+
+	TCanvas* c_hit_rec = new TCanvas("", "", 1800, 900);
+	h_hits->Draw("colz");
+	draw_boxes(scints);
+	c_hit_rec->Print("c_position_reconstruction.pdf");
+
+
 
 } //end of code
