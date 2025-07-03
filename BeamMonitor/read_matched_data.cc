@@ -1,4 +1,7 @@
 #include "math.h"
+#include "Math/Minimizer.h"
+#include "Math/Factory.h"
+#include "Math/Functor.h"
 
 #include "TLine.h"
 #include "TF1.h"
@@ -58,6 +61,26 @@ double calculate_speed(double sigma_tot1, double sigma_tot2, double length1, dou
 	return v_eff;
 }
 
+double calculate_speed_uncertainty(double Sigma1, double Sigma2, double length1, double length2, double Sigma1_error, double Sigma2_error, double v_eff){
+	double sigma_d = 0.289;
+	double v_eff_sigma = 1/ (3* v_eff) * 1 / (Sigma1 * Sigma1 + Sigma2 * Sigma2) * sqrt(sigma_d * sigma_d * length1 * length1 + sigma_d * sigma_d * length2 * length2 + Sigma1_error * Sigma1_error * Sigma1 * Sigma1 * pow((length1 * length1 - length2 * length2)/(Sigma1 * Sigma1 - Sigma2 * Sigma2), 2) + Sigma2_error * Sigma2_error * Sigma2 * Sigma2 * pow((length1 * length1 - length2 * length2)/(Sigma1 * Sigma1 - Sigma2 * Sigma2), 2));
+	return v_eff_sigma;
+}
+
+double chi_squared(const double *vars, const vector<double>& data, const vector<double>& data_errors, const vector<double>& length){
+	const double v_eff = vars[0];
+	const double sigma_sipm = vars[1];
+	double chi2 = 0;
+	for (int i = 0; i < 8; i++){
+		double sigma_sq_meas = data[i] * data[i];
+		double dim = length[i];
+		double sigma_sq_pred = dim * dim / (3 * v_eff * v_eff) + vars[i+2] * sigma_sipm * sigma_sipm;
+		double value = pow((sigma_sq_pred - sigma_sq_meas) / (data_errors[i] * data_errors[i]), 2) ;
+		chi2 += value;
+	}
+	return chi2;
+}
+
 //################################################ MAIN FUNCTION ###########################################
 
 
@@ -73,6 +96,10 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		{51, 16.25}
 	};
 	vector<double> start_y = {-58.875, -42.125, -25.375, -8.625, 8.625, 25.375, 42.125, 58.875};
+	vector<double> scint_lengths;
+	for (const auto pair : scint_dimensions){
+		scint_lengths.push_back(pair[0]);
+	}
 	bool apply_cuts = true;  // Set true if we want cuts during analysis
 	int verbose = 0;
 	
@@ -239,7 +266,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 				Form("Run %i Histogram of charge hits in TOF-%i - TOF_avg and TOF-%i - TOF_avg (BRB);charge TOF-%i - TOF_avg;charge TOF-%i - TOF_avg;counts", run_number, i, i+8, i, i+8),
 				100, -1000, 1000, 100, -1000, 1000);
 	}
-	TH2D* h_hits = new TH2D("h_hits", "Histogram of hits in TOF; x[mm]; y[mm]", 100, -scint_dimensions[4][0]/2, scint_dimensions[4][0]/2,
+	TH2D* h_hits = new TH2D("h_hits", "Histogram of hits in TOF; x[mm]; y[mm]", 50, -scint_dimensions[4][0]/2, scint_dimensions[4][0]/2,
 				8, start_y[0] - scint_dimensions[0][1]/2, start_y[7] + scint_dimensions[0][1]/2);
 
 	vector<TH1D*> h_BRB_q_diff(8);
@@ -265,8 +292,13 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 				100, 0, 6000);
 	}
 	TH1D* h_sigma;
-	h_sigma = new TH1D("h_sigma", Form("Run %i Time sigmas of scintillators; scintillator length[cm]; sigma[ns]",run_number), 
+	h_sigma = new TH1D("h_sigma", Form("Run %i Time sigmas of scintillators; scint ## ; sigma[ns]",run_number), 
 				16, 0, 8); 
+
+	TH1D* h_speed;
+	h_speed = new TH1D("h_speed", Form("Run %i Speed from sigma of shortest and longest scintillators; ; speed[ns]",run_number), 
+				1, 0, 1); 
+
 	// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 	int verb = 1000;
 
@@ -657,7 +689,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 					h_BRB_T0_tof_timediff[iscint]->Fill(sipm_time_a - T0_time, sipm_time_b - T0_time);
 					h_BRB_tof_avg_timediff[iscint]->Fill(sipm_time_a - avg_sipm_time, sipm_time_b - avg_sipm_time);
 					h_BRB_total_avg_time_diff[iscint]->Fill(sipm_time_a - total_avg_time[iscint], sipm_time_b - total_avg_time[iscint]);
-					double position = (sipm_time_a - sipm_time_b) * 300.0 / 1.58 / 2.0 ;
+					double position = (sipm_time_a - sipm_time_b) * 70 / 2.0 ;
 					h_hits->Fill(position, start_y[iscint]);
 				}
 			}
@@ -706,30 +738,12 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 
 	gStyle->SetPalette(1);
 	gStyle->SetOptFit(1);
-	TCanvas* c_bm_trig_0 = new TCanvas("", "", 1800, 900);
-	h_beamline_trigger_time_0->Draw("hist");
-
-	TCanvas* c_bm_trig_1 = new TCanvas("", "", 1800, 900);
-	h_beamline_trigger_time_1->Draw("hist");
-
-	TCanvas* c_bm_tof_times = new TCanvas("", "", 1800, 900);
-	c_bm_tof_times->Divide(4, 4);
-	for (int i = 0; i < 16; i++){
-		c_bm_tof_times->cd(i+1);
-		h_beamline_tof_times[i]->Draw("hist");
-	}
-
-	TCanvas* c_brb_tof_times = new TCanvas("", "", 1800, 900);
-	c_brb_tof_times->Divide(4, 4);
-	for (int i = 0; i < 16; i++){
-		c_brb_tof_times->cd(i+1);
-		h_BRB_tof_times[i]->Draw("hist");
-	}
 
 
 	vector<double> fit_BRB_sigma(8);
 	vector<double> fit_BRB_sigma_error(8);
-	TCanvas* c_bm_diff_times = new TCanvas("", "", 1800, 900);
+
+	TCanvas* c_bm_diff_times = new TCanvas("c_bm_diff_times", "c_bm_diff_times", 1800, 900);
 	c_bm_diff_times->Divide(4, 2);
 	for (int i = 0; i < 8; i++){
 		c_bm_diff_times->cd(i+1);
@@ -740,9 +754,8 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		fit_fun->Draw("same");
 	}
 	c_bm_diff_times->Print("h_bm_diff_times.pdf");
-	c_bm_diff_times->Close();
 
-	TCanvas* c_brb_diff_times = new TCanvas("", "", 1800, 900);
+	TCanvas* c_brb_diff_times = new TCanvas("c_brb_diff_times", "c_brb_diff_times", 1800, 900);
 	c_brb_diff_times->Divide(4, 2);
 	for (int i = 0; i < 8; i++){
 		c_brb_diff_times->cd(i+1);
@@ -755,70 +768,223 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 		fit_BRB_sigma_error[i] = fit_fun->GetParError(2);
 	}
 	c_brb_diff_times->Print("h_brb_diff_times.pdf");
-	c_brb_diff_times->Close();
+
+	
+	TCanvas* c_speed_fromavg = new TCanvas("c_speeds_fromavg", "c_speeds_fromavg", 1800, 900);
+	double avg1 = (fit_BRB_sigma[0] + fit_BRB_sigma[7]) / 2;
+	double avg2 = (fit_BRB_sigma[3] + fit_BRB_sigma[4]) / 2;
+	double avg1_unc = sqrt(fit_BRB_sigma_error[0] * fit_BRB_sigma_error[0] + fit_BRB_sigma_error[7] * fit_BRB_sigma_error[7]) / 2;
+	double avg2_unc = sqrt(fit_BRB_sigma_error[3] * fit_BRB_sigma_error[3] + fit_BRB_sigma_error[4] * fit_BRB_sigma_error[4]) / 2;
+	double avg_speed = calculate_speed(avg1, avg2, scint_dimensions[0][0], scint_dimensions[3][0]);
+	double v_eff_sigma = calculate_speed_uncertainty(avg1, avg2, scint_dimensions[0][0], scint_dimensions[3][0], avg1_unc, avg2_unc, avg_speed);
+
+	h_speed->SetBinContent(1, avg_speed);
+	h_speed->SetBinError(1, v_eff_sigma);
+
+	h_speed->Draw("histe");
 	
 	TCanvas* c_brb_sigmas = new TCanvas("c_brb_sigmas", "c_brb_sigmas", 1800, 900);
+	h_sigma->SetStats(0);
 	for(int i = 0; i < 8; i+=2){
-		h_sigma->SetBinContent(2*i + 1, fit_BRB_sigma[i]);
-		h_sigma->SetBinContent(2*i + 3, fit_BRB_sigma[7 - i]);
-		h_sigma->SetBinError(2*i + 1, fit_BRB_sigma_error[i]);
-		h_sigma->SetBinError(2*i + 3, fit_BRB_sigma_error[7 - i]);
+		h_sigma->SetBinContent(2*i + 1, fit_BRB_sigma[i/2]);
+		h_sigma->SetBinContent(2*i + 3, fit_BRB_sigma[7 - i/2]);
+		h_sigma->SetBinError(2*i + 1, fit_BRB_sigma_error[i/2]);
+		h_sigma->SetBinError(2*i + 3, fit_BRB_sigma_error[7 - i/2]);
 		TString label = Form("scintillator %i and %i", i/2, 7 - i/2);
 		h_sigma->GetXaxis()->SetBinLabel(2*i + 1, label);
 	}
 	h_sigma->Draw("histe");
+	c_brb_sigmas->Print("h_sigmas.pdf");
 
+	cout << "Fit brb sigma 7: " << fit_BRB_sigma[7] << " fit brb sigma 4: " << fit_BRB_sigma[4] << " scint_dimensions 7: " << scint_dimensions[7][0] << " scint_dimensions 4: " << scint_dimensions[4][0] << endl;
 
-	vector<double> v_eff;
-	for (int i = 0; i < 8; i++){
+	vector<TH1D*> h_speed2(8);
+	int num = 1;
+	for (int i = 0; i  < 8; i++){
+
+		h_speed2[i] = new TH1D("", "", 10, 0, 10);
+		h_speed2[i]->SetName(Form("Effective speed calculated from comparing scintillator %i with others", i));
+		h_speed2[i]->SetTitle(Form("Effective speed calculated from comparing scintillator %i with others", i));
+		h_speed2[i]->GetXaxis()->SetTitle("number");
+		h_speed2[i]->GetYaxis()->SetTitle("speed [mm/ns]");
+		num = 1;
+
 		for (int j = 0; j < 8; j++){
-			if(i!=j) v_eff.push_back(calculate_speed(fit_BRB_sigma[i], fit_BRB_sigma[j], scint_dimensions[i][0], scint_dimensions[j][0]));
-			
+			if(i==j || i== 7-j) continue;
+			double value = calculate_speed(fit_BRB_sigma[i], fit_BRB_sigma[j], scint_dimensions[i][0], scint_dimensions[j][0]);
+			if(std::isnan(value) || std::isinf(value) || value == 0) continue;
+			h_speed2[i]->SetBinContent(num, value);
+			num++;
+			cout << endl;
+			cout << "Check velocity value: " << value << endl;
+
+
+
 		}
+		cout << " NUM: " << num << endl;
+	//	cout << "Check graph point number: N = " <<h_speed2[i]->GetN() << endl; 
 	}
-	for (int i = 0; i < v_eff.size(); i++){
-		cout << "Effective speeds: " << v_eff[i] << endl;
+	cout << "ChecK: graphs done " << endl;
+	TCanvas* c_speeds = new TCanvas("c_speeds", "c_speeds", 1800, 900);
+	c_speeds->Divide(4, 2);
+	for(int i = 0; i < 8; i++){
+		c_speeds->cd(i+1);
+		h_speed2[i]->Draw("APL");
 	}
+	c_speeds->Print("c_speeds.pdf");
+
+	vector<TBox*> scints;
+	for(int i = 0; i < scint_dimensions.size(); i++){
+		TBox* help_box = new TBox(-scint_dimensions[i][0]/2, start_y[i] - scint_dimensions[i][1]/2, scint_dimensions[i][0]/2, start_y[i] + scint_dimensions[i][1]/2) ;
+		scints.push_back(help_box);
+	}//end create scintillator tiles
+	 //
 
 
-	TCanvas* c_T0_avg_times = new TCanvas("", "", 900, 900);
-	h_beamline_T0_avgtime->Draw("hist");
 
-	TCanvas* c_T0_counts = new TCanvas("", "", 900, 900);
-	h_beamline_T0_counts->Draw("hist");
-	c_T0_counts->Print("h_T0_counts.pdf");
+	TCanvas* c_hit_rec = new TCanvas("", "", 1800, 900);
+	h_hits->Draw("colz");
+	draw_boxes(scints);
+	c_hit_rec->Print("c_position_reconstruction.pdf");
+	
+	auto chi_lambda = [&](const double *x){
+		return chi_squared(x, fit_BRB_sigma, fit_BRB_sigma_error, scint_lengths);
+	};
 
-	TCanvas* c_T0_times = new TCanvas("", "", 1800, 900);
-	c_T0_times->Divide(2,2);
-	for (int i = 0; i < 4; i++){
-		c_T0_times->cd(i+1);
-		h_beamline_T0_times[i]->Draw("hist");
-	}
-	c_T0_times->Print("h_T0_times.pdf");
+	ROOT::Math::Minimizer* min = ROOT::Math::Factory::CreateMinimizer("Minuit2", "");
+	
+	min->SetTolerance(0.001);
+	min->SetPrintLevel(1);
 
-	TCanvas* c_T1_times = new TCanvas("", "", 1800, 900);
-	c_T1_times->Divide(2,2);
-	for (int i = 0; i < 4; i++){
-		c_T1_times->cd(i+1);
-		h_beamline_T1_times[i]->Draw("hist");
-	}
-	c_T1_times->Print("h_T1_times.pdf");
+	ROOT::Math::Functor func(chi_lambda, 2);
+	min->SetFunction(func);
 
-	TCanvas* c_T0_tof_difftimes = new TCanvas("", "", 1800, 900);
-	c_T0_tof_difftimes->Divide(4,2);
+	min->SetVariable(0, "v_eff", 189, 0.1);
+	min->SetVariableLimits(0, 0, 189);
+	min->SetVariable(1, "sigma_sipm", 0.2, 0.001);
 	for (int i = 0; i < 8; i++){
-		c_T0_tof_difftimes->cd(i+1);
-		h_beamline_T0_tof_timediff[i]->Draw("colz");
+		min->SetVariable(i+2, Form("lambda_%i", i), 1.0, 0.001);
+		min->SetVariableLimits(i+2, 1.0, 10);
 	}
-	c_T0_tof_difftimes->Print("h_T0_tof_difftimes.pdf");
+	min->SetMaxFunctionCalls(1000000);
+	min->SetMaxIterations(1000);
+	
+	min->Minimize();
+	if (min->Status() != 0) {
+		std::cerr << "Warning: Minimization did NOT converge! Status = " 
+			<< min->Status() << std::endl;
+	}
 
-	TCanvas* c_T1_tof_difftimes = new TCanvas("", "", 1800, 900);
-	c_T1_tof_difftimes->Divide(4,2);
+
+	const double* results = min->X();
+	std::cout << "Best v_eff: " << results[0] << "\t best sigma_sipm: " << results[1] << std::endl;    
+
+
+	// ###################### OLD GRAPHS, HISTOGRAMS ##############################
+
+	/*
+	   TCanvas* c_bm_trig_0 = new TCanvas("", "", 1800, 900);
+	   h_beamline_trigger_time_0->Draw("hist");
+
+	   TCanvas* c_bm_trig_1 = new TCanvas("", "", 1800, 900);
+	   h_beamline_trigger_time_1->Draw("hist");
+
+	   TCanvas* c_bm_tof_times = new TCanvas("", "", 1800, 900);
+	   c_bm_tof_times->Divide(4, 4);
+	   for (int i = 0; i < 16; i++){
+	   c_bm_tof_times->cd(i+1);
+	   h_beamline_tof_times[i]->Draw("hist");
+	   }
+
+	   TCanvas* c_brb_tof_times = new TCanvas("", "", 1800, 900);
+	   c_brb_tof_times->Divide(4, 4);
+	   for (int i = 0; i < 16; i++){
+	   c_brb_tof_times->cd(i+1);
+	   h_BRB_tof_times[i]->Draw("hist");
+	   }
+
+	   TCanvas* c_T0_avg_times = new TCanvas("", "", 900, 900);
+	   h_beamline_T0_avgtime->Draw("hist");
+
+	   TCanvas* c_T0_counts = new TCanvas("", "", 900, 900);
+	   h_beamline_T0_counts->Draw("hist");
+	   c_T0_counts->Print("h_T0_counts.pdf");
+
+	   TCanvas* c_T0_times = new TCanvas("", "", 1800, 900);
+	   c_T0_times->Divide(2,2);
+	   for (int i = 0; i < 4; i++){
+	   c_T0_times->cd(i+1);
+	   h_beamline_T0_times[i]->Draw("hist");
+	   }
+	   c_T0_times->Print("h_T0_times.pdf");
+
+	   TCanvas* c_T1_times = new TCanvas("", "", 1800, 900);
+	   c_T1_times->Divide(2,2);
+	   for (int i = 0; i < 4; i++){
+	   c_T1_times->cd(i+1);
+	   h_beamline_T1_times[i]->Draw("hist");
+	   }
+	   c_T1_times->Print("h_T1_times.pdf");
+
+	   TCanvas* c_T0_tof_difftimes = new TCanvas("", "", 1800, 900);
+	   c_T0_tof_difftimes->Divide(4,2);
+	   for (int i = 0; i < 8; i++){
+	   c_T0_tof_difftimes->cd(i+1);
+	   h_beamline_T0_tof_timediff[i]->Draw("colz");
+	   }
+	   c_T0_tof_difftimes->Print("h_T0_tof_difftimes.pdf");
+
+	   TCanvas* c_T1_tof_difftimes = new TCanvas("", "", 1800, 900);
+	   c_T1_tof_difftimes->Divide(4,2);
+	   for (int i = 0; i < 8; i++){
+	   c_T1_tof_difftimes->cd(i+1);
+	   h_beamline_T1_tof_timediff[i]->Draw("colz");
+	   }
+	   c_T1_tof_difftimes->Print("h_T1_tof_difftimes.pdf");
+
+	   TCanvas* c_charges = new TCanvas("c_charges", "c_charges", 1800, 900);
+	   c_charges->Divide(4, 4);
+	   for (int i = 0; i < 16; i++){
+	   c_charges->cd(i+1);
+	   h_charge[i]->Draw("hist");
+	   }
+
+	   c_charges->Print("h_charges.pdf");
+
+	   TCanvas* c_BRB_tof_avg_diffcharges = new TCanvas("c_BRB_tof_diffcharges", "c_BRB_tof_diffcharges", 1800, 900);
+	   c_BRB_tof_avg_diffcharges->Divide(4, 2);
 	for (int i = 0; i < 8; i++){
-		c_T1_tof_difftimes->cd(i+1);
-		h_beamline_T1_tof_timediff[i]->Draw("colz");
+		c_BRB_tof_avg_diffcharges->cd(i+1);
+		h_BRB_tof_avg_chargediff[i]->Draw("colz");
 	}
-	c_T1_tof_difftimes->Print("h_T1_tof_difftimes.pdf");
+	c_BRB_tof_avg_diffcharges->Print("h_BRB_tof_diffcharges.pdf");
+
+	TCanvas* c_BRB_q_diff= new TCanvas("", "", 1800, 900);
+	c_BRB_q_diff->Divide(4, 2);
+	for (int i = 0; i < 8; i++){
+		c_BRB_q_diff->cd(i+1);
+		h_BRB_q_diff[i]->Draw("colz");
+	}
+	c_BRB_q_diff->Print("h_BRB_tof_diffcharges.pdf");
+
+	TCanvas* c_BRB_chargediff= new TCanvas("", "", 1800, 900);
+	c_BRB_chargediff->Divide(4, 2);
+	for (int i = 0; i < 8; i++){
+		c_BRB_chargediff->cd(i+1);
+		h_BRB_tof_chargediff[i]->Draw("colz");
+	}
+	c_BRB_chargediff->Print("h_BRB_tof_chargediffs.pdf");
+
+
+	TCanvas* c_BRB_total_avg_time_diff= new TCanvas("", "", 1800, 900);
+	c_BRB_total_avg_time_diff->Divide(4, 2);
+	for (int i = 0; i < 8; i++){
+		c_BRB_total_avg_time_diff->cd(i+1);
+		h_BRB_total_avg_time_diff[i]->Draw("colz");
+	}
+	c_BRB_total_avg_time_diff->Print("h_BRB_tof_total_avg_time_diffs.pdf");
+
+
 
 	double e_time = 6.5/3e8 * std::sqrt(1.0 + 0.511/260.0) * pow(10, 9);
 	cout << "e_time is " << e_time << endl;
@@ -891,62 +1057,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	}
 
 	c_BRB_avg_tof_tof_times->Print("h_BRB_avg_tof_tof_times.pdf");
-
-	vector<TBox*> scints;
-	for(int i = 0; i < scint_dimensions.size(); i++){
-		TBox* help_box = new TBox(-scint_dimensions[i][0]/2, start_y[i] - scint_dimensions[i][1]/2, scint_dimensions[i][0]/2, start_y[i] + scint_dimensions[i][1]/2) ;
-		scints.push_back(help_box);
-	}//end create scintillator tiles
-	 //
-	TCanvas* c_BRB_tof_avg_diffcharges = new TCanvas("c_BRB_tof_diffcharges", "c_BRB_tof_diffcharges", 1800, 900);
-	c_BRB_tof_avg_diffcharges->Divide(4, 2);
-	for (int i = 0; i < 8; i++){
-		c_BRB_tof_avg_diffcharges->cd(i+1);
-		h_BRB_tof_avg_chargediff[i]->Draw("colz");
-	}
-	c_BRB_tof_avg_diffcharges->Print("h_BRB_tof_diffcharges.pdf");
-
-	TCanvas* c_BRB_q_diff= new TCanvas("", "", 1800, 900);
-	c_BRB_q_diff->Divide(4, 2);
-	for (int i = 0; i < 8; i++){
-		c_BRB_q_diff->cd(i+1);
-		h_BRB_q_diff[i]->Draw("colz");
-	}
-	c_BRB_q_diff->Print("h_BRB_tof_diffcharges.pdf");
-
-	TCanvas* c_BRB_chargediff= new TCanvas("", "", 1800, 900);
-	c_BRB_chargediff->Divide(4, 2);
-	for (int i = 0; i < 8; i++){
-		c_BRB_chargediff->cd(i+1);
-		h_BRB_tof_chargediff[i]->Draw("colz");
-	}
-	c_BRB_chargediff->Print("h_BRB_tof_chargediffs.pdf");
-
-
-	TCanvas* c_BRB_total_avg_time_diff= new TCanvas("", "", 1800, 900);
-	c_BRB_total_avg_time_diff->Divide(4, 2);
-	for (int i = 0; i < 8; i++){
-		c_BRB_total_avg_time_diff->cd(i+1);
-		h_BRB_total_avg_time_diff[i]->Draw("colz");
-	}
-	c_BRB_total_avg_time_diff->Print("h_BRB_tof_total_avg_time_diffs.pdf");
-
-
-
-	TCanvas* c_charges = new TCanvas("c_charges", "c_charges", 1800, 900);
-	c_charges->Divide(4, 4);
-	for (int i = 0; i < 16; i++){
-		c_charges->cd(i+1);
-		h_charge[i]->Draw("hist");
-	}
-
-	c_charges->Print("h_charges.pdf");
-
-	TCanvas* c_hit_rec = new TCanvas("", "", 1800, 900);
-	h_hits->Draw("colz");
-	draw_boxes(scints);
-	c_hit_rec->Print("c_position_reconstruction.pdf");
-
+	*/
 
 
 } //end of code

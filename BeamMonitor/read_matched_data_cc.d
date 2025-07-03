@@ -1,14 +1,24 @@
 
 # DO NOT DELETE
 
-./read_matched_data_cc.so: /usr/local/include/TLine.h
-./read_matched_data_cc.so: /usr/local/include/TObject.h
-./read_matched_data_cc.so: /usr/local/include/Rtypes.h
+./read_matched_data_cc.so: /usr/local/include/Math/Minimizer.h
+./read_matched_data_cc.so: /usr/local/include/Math/IFunction.h
+./read_matched_data_cc.so: /usr/local/include/Math/IFunctionfwd.h
+./read_matched_data_cc.so: /usr/local/include/Math/MinimizerOptions.h
+./read_matched_data_cc.so: /usr/local/include/Math/Util.h
+./read_matched_data_cc.so: /usr/local/include/Math/Types.h
+./read_matched_data_cc.so: /usr/local/include/RConfigure.h
 ./read_matched_data_cc.so: /usr/local/include/RtypesCore.h
 ./read_matched_data_cc.so: /usr/local/include/ROOT/RConfig.hxx
 ./read_matched_data_cc.so: /usr/local/include/RVersion.h
-./read_matched_data_cc.so: /usr/local/include/RConfigure.h
 ./read_matched_data_cc.so: /usr/local/include/DllImport.h
+./read_matched_data_cc.so: /usr/local/include/Math/Error.h
+./read_matched_data_cc.so: /usr/local/include/TError.h
+./read_matched_data_cc.so: /usr/local/include/Math/Factory.h
+./read_matched_data_cc.so: /usr/local/include/Math/Functor.h
+./read_matched_data_cc.so: /usr/local/include/TLine.h
+./read_matched_data_cc.so: /usr/local/include/TObject.h
+./read_matched_data_cc.so: /usr/local/include/Rtypes.h
 ./read_matched_data_cc.so: /usr/local/include/strtok.h
 ./read_matched_data_cc.so: /usr/local/include/strlcpy.h
 ./read_matched_data_cc.so: /usr/local/include/snprintf.h
@@ -43,7 +53,6 @@
 ./read_matched_data_cc.so: /usr/local/include/TAttMarker.h
 ./read_matched_data_cc.so: /usr/local/include/TF1AbsComposition.h
 ./read_matched_data_cc.so: /usr/local/include/TMath.h
-./read_matched_data_cc.so: /usr/local/include/TError.h
 ./read_matched_data_cc.so: /usr/local/include/Math/ParamFunctor.h
 ./read_matched_data_cc.so: /usr/local/include/TStyle.h
 ./read_matched_data_cc.so: /usr/local/include/TAttText.h
