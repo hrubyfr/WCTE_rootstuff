@@ -1,0 +1,62 @@
+
+# DO NOT DELETE
+
+./data_minimizer_cc.so: /usr/local/include/Math/Minimizer.h
+./data_minimizer_cc.so: /usr/local/include/Math/IFunction.h
+./data_minimizer_cc.so: /usr/local/include/Math/IFunctionfwd.h
+./data_minimizer_cc.so: /usr/local/include/Math/MinimizerOptions.h
+./data_minimizer_cc.so: /usr/local/include/Math/Util.h
+./data_minimizer_cc.so: /usr/local/include/Math/Types.h
+./data_minimizer_cc.so: /usr/local/include/RConfigure.h
+./data_minimizer_cc.so: /usr/local/include/RtypesCore.h
+./data_minimizer_cc.so: /usr/local/include/ROOT/RConfig.hxx
+./data_minimizer_cc.so: /usr/local/include/RVersion.h
+./data_minimizer_cc.so: /usr/local/include/DllImport.h
+./data_minimizer_cc.so: /usr/local/include/Math/Error.h
+./data_minimizer_cc.so: /usr/local/include/TError.h
+./data_minimizer_cc.so: /usr/local/include/Math/Factory.h
+./data_minimizer_cc.so: /usr/local/include/Math/Functor.h
+./data_minimizer_cc.so: /usr/local/include/TFile.h
+./data_minimizer_cc.so: /usr/local/include/Compression.h
+./data_minimizer_cc.so: /usr/local/include/TDirectoryFile.h
+./data_minimizer_cc.so: /usr/local/include/TDirectory.h
+./data_minimizer_cc.so: /usr/local/include/TNamed.h
+./data_minimizer_cc.so: /usr/local/include/TObject.h
+./data_minimizer_cc.so: /usr/local/include/Rtypes.h
+./data_minimizer_cc.so: /usr/local/include/strtok.h
+./data_minimizer_cc.so: /usr/local/include/strlcpy.h
+./data_minimizer_cc.so: /usr/local/include/snprintf.h
+./data_minimizer_cc.so: /usr/local/include/TGenericClassInfo.h
+./data_minimizer_cc.so: /usr/local/include/TSchemaHelper.h
+./data_minimizer_cc.so: /usr/local/include/TIsAProxy.h
+./data_minimizer_cc.so: /usr/local/include/TVirtualIsAProxy.h
+./data_minimizer_cc.so: /usr/local/include/TStorage.h
+./data_minimizer_cc.so: /usr/local/include/TVersionCheck.h
+./data_minimizer_cc.so: /usr/local/include/RVersion.h
+./data_minimizer_cc.so: /usr/local/include/TString.h
+./data_minimizer_cc.so: /usr/local/include/TMathBase.h
+./data_minimizer_cc.so: /usr/local/include/ROOT/RStringView.hxx
+./data_minimizer_cc.so: /usr/local/include/ROOT/TypeTraits.hxx
+./data_minimizer_cc.so: /usr/local/include/TClass.h
+./data_minimizer_cc.so: /usr/local/include/TDictionary.h
+./data_minimizer_cc.so: /usr/local/include/ESTLType.h
+./data_minimizer_cc.so: /usr/local/include/TObjArray.h
+./data_minimizer_cc.so: /usr/local/include/TSeqCollection.h
+./data_minimizer_cc.so: /usr/local/include/TCollection.h
+./data_minimizer_cc.so: /usr/local/include/TIterator.h
+./data_minimizer_cc.so: /usr/local/include/TVirtualRWMutex.h
+./data_minimizer_cc.so: /usr/local/include/TVirtualMutex.h
+./data_minimizer_cc.so: /usr/local/include/ROOT/RRangeCast.hxx
+./data_minimizer_cc.so: /usr/local/include/ROOT/RSpan.hxx
+./data_minimizer_cc.so: /usr/local/include/ROOT/span.hxx
+./data_minimizer_cc.so: /usr/local/include/TUUID.h /usr/local/include/TList.h
+./data_minimizer_cc.so: /usr/local/include/TBuffer.h
+./data_minimizer_cc.so: /usr/local/include/TDataType.h
+./data_minimizer_cc.so: /usr/local/include/Bytes.h
+./data_minimizer_cc.so: /usr/local/include/TDatime.h
+./data_minimizer_cc.so: /usr/local/include/TUrl.h
+./data_minimizer_cc.so: /usr/local/include/ROOT/RConcurrentHashColl.hxx
+./data_minimizer_cc.so: /usr/local/include/ROOT/TRWSpinLock.hxx
+./data_minimizer_cc.so: /usr/local/include/ROOT/TSpinMutex.hxx
+./data_minimizer_cc.so: /usr/local/include/RVersion.h /usr/local/include/ROOT/RConfig.hxx /usr/local/include/TClass.h /usr/local/include/TDictAttributeMap.h /usr/local/include/TInterpreter.h /usr/local/include/TROOT.h /usr/local/include/TBuffer.h /usr/local/include/TMemberInspector.h /usr/local/include/TError.h /usr/local/include/RtypesImp.h /usr/local/include/TIsAProxy.h /usr/local/include/TFileMergeInfo.h /usr/local/include/TCollectionProxyInfo.h /usr/local/bin/rootcling
+data_minimizer_cc__ROOTBUILDVERSION= 6.28/10
