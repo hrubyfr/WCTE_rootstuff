@@ -260,7 +260,7 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	for (int i = 0; i < 8; i++){
 		h_BRB_T0_tof_timediff[i] = new TH2D(Form("h_BRB_T0_tof_timediff_%i", i), 
 				Form("Run %i Histogram of time hits in TOF-%i - T0 and TOF-%i - T0 (BRB);time TOF-%i - T0;time TOF-%i - T0;counts", run_number, i, i+8, i, i+8),
-				50, 0, 100, 50, 0, 100);
+				70, 34, 44, 70, 34, 44);
 	}
 	vector<TH2D*> h_BRB_tof_avg_timediff(8);
 	for (int i = 0; i < 8; i++){
@@ -854,6 +854,13 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 	}//end create scintillator tiles
 	 //
 
+	TCanvas* c_BRB_T0_tof_difftimes = new TCanvas("c_BRB_T0_tof_difftimes", "c_BRB_T0_tof_difftimes", 1800, 900);
+	c_BRB_T0_tof_difftimes->Divide(4, 2);
+	for (int i = 0; i < 8; i++){
+		c_BRB_T0_tof_difftimes->cd(i+1);
+		h_BRB_T0_tof_timediff[i]->Draw("colz");
+	}
+	c_BRB_T0_tof_difftimes->Print("h_BRB_T0_tof_difftimes.pdf");
 
 
 	TCanvas* c_hit_rec = new TCanvas("", "", 1800, 900);
@@ -1058,13 +1065,6 @@ void read_matched_data(TString filename = "/media/frantisek/T7\ Shield/WCTE_data
 
 	c_BRB_T0_tof_times->Print("h_BRB_T0_tof_times.pdf");
 
-	TCanvas* c_BRB_T0_tof_difftimes = new TCanvas("c_BRB_T0_tof_difftimes", "c_BRB_T0_tof_difftimes", 1800, 900);
-	c_BRB_T0_tof_difftimes->Divide(4, 2);
-	for (int i = 0; i < 8; i++){
-		c_BRB_T0_tof_difftimes->cd(i+1);
-		h_BRB_T0_tof_timediff[i]->Draw("colz");
-	}
-	c_BRB_T0_tof_difftimes->Print("h_BRB_T0_tof_difftimes.pdf");
 
 	TCanvas* c_BRB_tof_avg_difftimes = new TCanvas("c_BRB_tof_difftimes", "c_BRB_tof_difftimes", 1800, 900);
 	c_BRB_tof_avg_difftimes->Divide(4, 2);
