@@ -130,6 +130,8 @@
 ./read_matched_data_cc.so: /usr/local/include/TRandom.h
 ./read_matched_data_cc.so: /usr/local/include/Math/TRandomEngine.h
 ./read_matched_data_cc.so: /usr/local/include/TArrow.h
+./read_matched_data_cc.so: /usr/local/include/TLegend.h
+./read_matched_data_cc.so: /usr/local/include/TPave.h
 ./read_matched_data_cc.so: /usr/local/include/TTree.h
 ./read_matched_data_cc.so: /usr/local/include/ROOT/TIOFeatures.hxx
 ./read_matched_data_cc.so: /usr/local/include/TVirtualTreePlayer.h

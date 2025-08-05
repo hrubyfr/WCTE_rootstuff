@@ -3,6 +3,7 @@
 #include "Math/Functor.h"
 #include "math.h"
 
+#include "TH1D.h"
 #include <TGraph2D.h>
 #include "TFile.h"
 #include "TH2D.h"
@@ -14,14 +15,30 @@
 #include <TSystem.h>
 #include <TRandom3.h>
 #include <TArrow.h>
+#include "TStyle.h"
+#include "TEllipse.h"
+#include "TMarker.h"
 
 #include <TVirtualPad.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <csignal>
 #include <cstdio>
 #include <vector>
 #include <array>
+
+void draw_detector(double radius, std::vector<ROOT::Math::Polar2DVector> SiPMVector){
+	TEllipse* circle = new TEllipse(0, 0, radius, radius);
+	for (int j = 0; j < SiPMVector.size(); j++){
+		auto pmt = new TMarker(SiPMVector[j].X(), SiPMVector[j].Y(), kFullCircle);
+		pmt->SetMarkerColor(kBlue);
+		pmt->Draw("same");
+	}
+	circle->SetFillStyle(0);
+	circle->SetLineColor(kBlack);
+	circle->Draw("same");
+}
 
 ROOT::Math::Polar2DVector construct_SiPM(double r, double phi){
 	return ROOT::Math::Polar2DVector(r, phi);
@@ -46,7 +63,7 @@ std::vector<ROOT::Math::XYPoint> get_grid(double radius, int max_enum){
 				helpvector.push_back(helppoint);
 			}
 		}
-	
+
 	}
 	return helpvector;
 
@@ -59,7 +76,7 @@ double Det_response(ROOT::Math::Polar2DVector SiPM_position, ROOT::Math::XYPoint
 	// std::cout << "Relative position of point to detector is: " << rel_position << endl;
 	// std::cout << "Distance of point from detector is " << distance(rel_position.X(), rel_position.Y()) << " cm" << endl;
 	double r = distance(rel_position.X(), rel_position.Y());
-	auto response = 1 / pow(r, 2);
+	auto response = 1 / pow(r, 2) * exp(-r / 120);
 	return response;
 }
 
@@ -68,9 +85,9 @@ double Det_response(ROOT::Math::Polar2DVector SiPM_position, ROOT::Math::XYPoint
 void Minimize(double sigma = 0){
 	int NDet = 16;
 	std::vector<ROOT::Math::Polar2DVector> SiPMs;
-	TString folder = Form("plots_blur_%.3f/", sigma);
-	gSystem->Exec(Form("mkdir -p ./plots_blur_%.3f/", sigma));
-	
+	TString folder = Form("plots_blur_exp_%.3f/", sigma);
+	gSystem->Exec(Form("mkdir -p ./plots_blur_exp_%.3f/", sigma));
+
 
 	double radius = 3.0;
 	for(int i = 0; i < NDet; i++){
@@ -82,7 +99,8 @@ void Minimize(double sigma = 0){
 
 	std::vector<std::array<double, 2>> rec_coordinates;  //data arrays definition
 	std::vector<double> chi2_values;
-	
+
+	TH1D *h_blur = new TH1D("h_blur", "Histogram of difference of the blurred signal to the original signal; signal difference after blurring in % of original signal;count", 500, -500, 500);
 
 
 	int n_enum = 30;
@@ -97,9 +115,15 @@ void Minimize(double sigma = 0){
 		auto point = points[i];
 		std::vector<double> signals;
 		for (int j = 0; j < SiPMs.size(); j++){
-			auto signal = Det_response(SiPMs[j], point);
-			signal = signal + sigma * rand.Gaus(0, blur); // blurring the signal
-			signals.push_back(signal);
+			double signal = Det_response(SiPMs[j], point);
+			std::cout << "Signal is " << signal << std::endl;
+
+			double signal_blurred = signal + sigma * rand.Gaus(0, blur); // blurring the signal
+			double signal_difference = (signal - signal_blurred) / signal * 100;
+			h_blur->Fill(signal_difference);
+
+			std::cout << "Modified signal is " << signal_blurred << std::endl;
+			signals.push_back(signal_blurred);
 		}
 		signal_memory.push_back(signals);
 		auto chi2function = [&](const double* params) -> double{	//inline function declaration of chi2 function, that gets minimized 
@@ -112,7 +136,7 @@ void Minimize(double sigma = 0){
 				double dy = y - SiPMs[i].Y();			//defining the chi2 function	
 				double dist = sqrt(dx * dx + dy * dy);
 
-				double theory_sig = 1.0 / (dist * dist);
+				double theory_sig = 1.0 / (dist * dist) * exp(-dist/120);
 
 				double residual = (signals[i] - theory_sig);
 				chi2 += residual * residual;
@@ -135,7 +159,7 @@ void Minimize(double sigma = 0){
 		minimizer->SetVariable(1, "y", 0.0, 0.001);
 		minimizer->SetVariableLimits(0, -3, 3);
 		minimizer->SetVariableLimits(1, -3, 3);
-				
+
 		minimizer->SetMaxFunctionCalls(10000);		
 
 		minimizer->Minimize();			//Minimizing the chi2
@@ -148,17 +172,20 @@ void Minimize(double sigma = 0){
 		chi2_values.push_back(chi2value);		
 
 
+		std::cout << "Final value of chi_squared: " << minimizer->MinValue() << std::endl;
 		const double* results = minimizer->X();
 		std::cout << "Primary point X: " << points[i].X() << " Y: " << points[i].Y() << std::endl;
 		std::cout << "Best x: " << results[0] << "\t best y: " << results[1] << std::endl;    
-		
+
 		std::array<double, 2> help_array = {{results[0], results[1]}};
 		rec_coordinates.push_back(help_array);
 
-		
+
 	}	//end of event loop
 
-//##################################################### drawing plots #####################################################
+	//##################################################### drawing plots #####################################################
+
+
 
 	std::cout << "Minimization did not converge " << n_crash << " times out of " << rec_coordinates.size() << "points"  << std::endl;
 	TGraph* Primary_grid = new TGraph(points.size());
@@ -168,7 +195,7 @@ void Minimize(double sigma = 0){
 		Primary_grid->SetPoint(i, points[i].X(), points[i].Y());
 	}
 	Primary_grid->SetMarkerStyle(20);
-	
+
 	TGraph* Secondary_grid = new TGraph(rec_coordinates.size());
 
 	Secondary_grid->SetName("Secondary_grid");
@@ -177,27 +204,33 @@ void Minimize(double sigma = 0){
 		Secondary_grid->SetPoint(i, rec_coordinates[i][0], rec_coordinates[i][1]);
 	}
 	Secondary_grid->SetMarkerStyle(20);	
-	
+
 	TCanvas* c_grid = new TCanvas("", "", 1800, 900);
 	c_grid->Divide(2);
 	c_grid->cd(1);
 	Primary_grid->Draw("AP");	
+	draw_detector(radius, SiPMs);
 	c_grid->cd(2);
 	Secondary_grid->Draw("AP");
-	
+	for(int i = 0; i < rec_coordinates.size(); i++){
+		TArrow* arrow = new TArrow(points[i].X(), points[i].Y(), rec_coordinates[i][0], rec_coordinates[i][1], 0.005, "|>");
+		arrow->Draw();
+	}
+	draw_detector(radius, SiPMs);
+
 	c_grid->Print(folder + "g_grid.png");
 	delete c_grid;
 
 	//################### arrow plots ################# 
-	
+
 	TCanvas* c_arrow = new TCanvas ("", "", 1800, 900);
 	TGraph* arrow_graph = new TGraph(rec_coordinates.size());
 	arrow_graph->GetXaxis()->SetRangeUser(-radius, radius); 
 	arrow_graph->GetYaxis()->SetRangeUser(-radius, radius); 
-	
+
 	arrow_graph->SetName("arrow_graph");
 	arrow_graph->SetTitle("point movement after reconstruction;x [cm]; y[cm]");
-	
+
 	arrow_graph->SetMarkerStyle(20);
 
 	for(int i = 0; i < rec_coordinates.size();i++){
@@ -208,19 +241,19 @@ void Minimize(double sigma = 0){
 		TArrow* arrow = new TArrow(points[i].X(), points[i].Y(), rec_coordinates[i][0], rec_coordinates[i][1], 0.005, "|>");
 		arrow->SetLineColor(kBlue);
 		arrow->Draw();
-		}
+	}
 	c_arrow->Print(folder + "g_arrow.png");
 	delete c_arrow;
-	
+
 	//########################################### printing residuals ###################################################
-	
+
 	TGraph2D* residuals_x = new TGraph2D(rec_coordinates.size());
 	residuals_x->SetName("Residuals_x");
 	residuals_x->SetTitle("Residuals x;x[cm];y[cm];x_residual[cm]");
 	TGraph2D* residuals_y = new TGraph2D(rec_coordinates.size());
 	residuals_y->SetName("Residuals_y");
 	residuals_y->SetTitle("Residuals y;x[cm];y[cm];y_residual[cm]");
-	
+
 	for(int i = 0; i < rec_coordinates.size(); i++){
 		residuals_x->SetPoint(i, points[i].X(), points[i].Y(), points[i].X() - rec_coordinates[i][0]);
 		residuals_y->SetPoint(i, points[i].X(), points[i].Y(), points[i].Y() - rec_coordinates[i][1]);
@@ -232,32 +265,32 @@ void Minimize(double sigma = 0){
 	residuals_x->Draw("TRI");
 	c_residual->cd(2);
 	residuals_y->Draw("TRI");
-	
+
 	c_residual->Print(folder + "residuals.png");
 	delete c_residual;
 
 	TH2D* h_x_residuals = new TH2D("h_x_residuals", "x Residuals;x [cm];y[cm];residual_x [cm]",
-					n_enum + 1, -radius, radius, n_enum + 1, - radius, radius);
+			n_enum + 1, -radius, radius, n_enum + 1, - radius, radius);
 	TH2D* h_y_residuals = new TH2D("h_y_residuals", "y Residuals;x [cm];y[cm];residual_y [cm]",
-					n_enum + 1, -radius, radius, n_enum + 1, - radius, radius);
-	
+			n_enum + 1, -radius, radius, n_enum + 1, - radius, radius);
+
 	for(int i = 0; i < points.size(); i++){
 		h_x_residuals->Fill(points[i].X(), points[i].Y(), rec_coordinates[i][0] - points[i].X()); 
 		h_y_residuals->Fill(points[i].X(), points[i].Y(), rec_coordinates[i][1] - points[i].Y()); 
-		}//end filling residuals histogram
+	}//end filling residuals histogram
 
 	TCanvas* c_h_residuals = new TCanvas("", "", 1800, 900);
 	c_h_residuals->Divide(2);
 	c_h_residuals->cd(1);
-	
+
 	h_x_residuals->Draw("colz");
-	
+
 	c_h_residuals->cd(2);
 	h_y_residuals->Draw("colz");
-	
+
 	c_h_residuals->Print(folder + "c_h_residuals.png");
 	delete c_h_residuals;
-	
+
 
 	std::cout << "Start projections" << std::endl;
 	TH1D* h_xx_projection = h_x_residuals->ProjectionX();
@@ -278,32 +311,32 @@ void Minimize(double sigma = 0){
 
 	std::cout << "Projections finished" << std::endl;
 	TCanvas* c_h_projections = new TCanvas("", "", 1800, 900);
-	
+
 	c_h_projections->Divide(2, 2);
 	c_h_projections->cd(1);
-	
+
 	h_xx_projection->Draw("hist");
-	
+
 	c_h_projections->cd(2);
 	h_yx_projection->Draw("hist");
 
 	c_h_projections->cd(3);
-	
+
 	h_xy_projection->Draw("hist");
-	
+
 	c_h_projections->cd(4);
 	h_yy_projection->Draw("hist");
-	
+
 	c_h_projections->Print(folder + "c_h_projections.png");
 	delete c_h_projections;
 	TH1D* h_xx2_projection = new TH1D("h_xx2_projection", "x^2 residual projection on x axis;x [cm]; x^2 residual",
-						n_enum + 1, -radius, radius);
+			n_enum + 1, -radius, radius);
 	TH1D* h_yx2_projection = new TH1D("h_yx2_projection", "x^2 residual projection on y axis;y [cm]; x^2 residual",
-						n_enum + 1, -radius, radius);
+			n_enum + 1, -radius, radius);
 	TH1D* h_xy2_projection = new TH1D("h_xy2_projection", "y^2 residual projection on x axis;x [cm]; y^2 residual",
-						n_enum + 1, -radius, radius);
+			n_enum + 1, -radius, radius);
 	TH1D* h_yy2_projection = new TH1D("h_yy2_projection", "y^2 residual projection on y axis;y [cm]; y^2 residual",
-						n_enum + 1, -radius, radius);
+			n_enum + 1, -radius, radius);
 	for(int i = 0; i <= n_enum; i++){ //start for loop
 		h_xx2_projection->SetBinContent(i+1, (h_xx_projection->GetBinContent(i)) * (h_xx_projection->GetBinContent(i)));
 		h_yx2_projection->SetBinContent(i, h_yx_projection->GetBinContent(i) * h_yx_projection->GetBinContent(i));
@@ -313,53 +346,57 @@ void Minimize(double sigma = 0){
 
 
 	TCanvas* c_h2_projections = new TCanvas("", "", 1800, 900);
-	
+
 	c_h2_projections->Divide(2, 2);
 	c_h2_projections->cd(1);
-	
+
 	h_xx2_projection->Draw("hist");
-	
+
 	c_h2_projections->cd(2);
 	h_yx2_projection->Draw("hist");
 
 	c_h2_projections->cd(3);
-	
+
 	h_xy2_projection->Draw("hist");
-	
+
 	c_h2_projections->cd(4);
 	h_yy2_projection->Draw("hist");
-	
+
 	c_h2_projections->Print(folder + "c_h2_projections.png");
 	delete c_h2_projections;
 
 	//###
+	TCanvas* c_blurs = new TCanvas("c_blurs", "c_blurs", 1800, 900);
+	if (sigma != 0.1) h_blur->GetXaxis()->SetRangeUser(-200, 200);
+	h_blur->Draw("hist");
+	c_blurs->Print(folder + "h_blur.png");
 
-	TH2D* h_rx = new TH2D("h_rx", Form("occurence of x residuals on x with blurring = %f; y [cm]; residual x [cm]; counts", blur),
-				n_enum + 1, - radius, radius, 5*n_enum + 1, - 0.3, 0.3);
-	TH2D* h_ry= new TH2D("h_ry", Form("occurence of x residuals on y with blurring = %f; y [cm]; residual x [cm]; counts", blur),
-				n_enum + 1, - radius, radius, 5*n_enum + 1, - 0.3, 0.3);
+	TH2D* h_rx = new TH2D("h_rx", Form("occurence of x residuals on x with blurring = %.001f; y [cm]; residual x [cm]; counts", sigma),
+			n_enum + 1, - radius, radius, 5*n_enum + 1, - 0.3, 0.3);
+	TH2D* h_ry= new TH2D("h_ry", Form("occurence of x residuals on y with blurring = %f; y [cm]; residual x [cm]; counts", sigma),
+			n_enum + 1, - radius, radius, 5*n_enum + 1, - 0.3, 0.3);
 	for(int i = 0; i < points.size(); i++){
 		double check = distance(points[i].X(), points[i].Y());
 		if (check <= radius - 1){
-		h_rx->Fill(points[i].X(), points[i].X() - rec_coordinates[i][0]);		
-		h_ry->Fill(points[i].Y(), points[i].X() - rec_coordinates[i][0]);		
-}} //end loop	
+			h_rx->Fill(points[i].X(), points[i].X() - rec_coordinates[i][0]);		
+			h_ry->Fill(points[i].Y(), points[i].X() - rec_coordinates[i][0]);		
+		}} //end loop	
 	TCanvas* c_res = new TCanvas("", "", 1800, 900);
 	c_res->Divide(2);
 	c_res->cd(1);
-	
+
 	h_rx->Draw("colz");
-	
+
 	c_res->cd(2);
 
 	h_ry->Draw("colz");
 
 	c_res->Print(folder + "h_res.png");	
-	
+
 	delete c_res;
 
 	TCanvas* c_chi2 = new TCanvas("", "", 1800, 900);
-	
+
 	TH1D* h_chi2 = new TH1D("h_chi2", "Final #chi ^{2};event;#chi ^{2}", chi2_values.size(), 0, chi2_values.size()+1);
 	for(int i = 0; i < chi2_values.size(); i++){
 		h_chi2->SetBinContent(i+1, chi2_values[i]);	
@@ -372,7 +409,7 @@ void Minimize(double sigma = 0){
 	TCanvas* c_dist = new TCanvas("", "", 1800, 900);
 	TGraph2D* g_dist = new TGraph2D(points.size());
 	for(int i = 0; i < points.size(); i++){
-		
+
 		double x_dif = points[i].X() - rec_coordinates[i][0];
 		double y_dif = points[i].Y() - rec_coordinates[i][1];
 		double deviation = sqrt(x_dif * x_dif + y_dif * y_dif);
@@ -385,22 +422,22 @@ void Minimize(double sigma = 0){
 	delete c_dist;
 
 	TCanvas* c_xy_chi2 = new TCanvas("", "", 1800, 900);
-	
+
 	c_xy_chi2->Divide(2);
 
 	c_xy_chi2->cd(1);
-	
+
 	g_dist->GetZaxis()->SetTitleOffset(2.0);
 	g_dist->Draw("TRI");
 
 	c_xy_chi2->cd(2);
-	
+
 	TH2D* h_xy_chi2 = new TH2D("h_xy_chi2", "chi2 values of points; x[cm];y[cm];#chi^{2}"
-					, n_enum + 1, -radius, radius, n_enum+1, -radius, radius);
+			, n_enum + 1, -radius, radius, n_enum+1, -radius, radius);
 	for(int i = 0; i < points.size(); i++){
-		
+
 		if (distance(points[i].X(), points[i].Y()) <= radius - 1)h_xy_chi2->Fill(points[i].X(), points[i].Y(), chi2_values[i]);
-		} //end loop
+	} //end loop
 	gPad->SetLogz();
 	gPad->SetRightMargin(0.15);
 	gStyle->SetOptStat(0);
@@ -424,24 +461,26 @@ void Minimize(double sigma = 0){
 		pos[0] /= total_charge;
 		pos[1] /= total_charge;
 		g_weighted->SetPoint(i , pos[0], pos[1]);
-		}//end for cycle
+	}//end for cycle
 	TCanvas* c_comp = new TCanvas("", "", 1800, 900);
 	c_comp->Divide(2);
 	c_comp->cd(1);
 	g_weighted->Draw("ap*");
+	draw_detector(radius, SiPMs);
 
 	c_comp->cd(2);
 	Secondary_grid->Draw("ap*");
+	draw_detector(radius, SiPMs);
 	c_comp->Print(folder + "g_comp.png");
 	delete c_comp;
-	
+
 	// ############## NEW MINIMIZATION? APPROXIMATE STARTING POSITION USING WEIGHTED CHARGE ###################
-	
+
 	std::vector<std::array<double, 2>> new_coordinates;
 	for(int i = 0; i < points.size();i++){
 		auto point = points[i];
 		std::vector<double> signals = signal_memory[i];
-		
+
 		std::array<double, 2> start_position;
 		double total_charge;
 		for (int j = 0; j < signals.size(); j++) {
@@ -485,7 +524,7 @@ void Minimize(double sigma = 0){
 		minimizer->SetVariable(1, "y", start_position[1], 0.001);
 		minimizer->SetVariableLimits(0, -3, 3);
 		minimizer->SetVariableLimits(1, -3, 3);
-				
+
 		minimizer->SetMaxFunctionCalls(10000);		
 
 		minimizer->Minimize();			//Minimizing the chi2
@@ -497,12 +536,12 @@ void Minimize(double sigma = 0){
 		std::array<double, 2> help_arr = {minimizer->X()[0], minimizer->X()[1]};
 		new_coordinates.push_back(help_arr);
 	}//end loop over events
-	
+
 	TGraph2D* g_new = new TGraph2D(points.size());
 	g_new->SetName("g_new");
 	g_new->SetTitle("difference in end distances from primary point of reconstruction via primary approximation versus no primary approximation; x[cm]; y[cm]; difference[cm]");
 	for(int i = 0; i < points.size(); i++){
-		
+
 		double x_dif = points[i].X() - rec_coordinates[i][0];
 		double y_dif = points[i].Y() - rec_coordinates[i][1];
 		double deviation1 = sqrt(x_dif * x_dif + y_dif * y_dif);
@@ -512,12 +551,12 @@ void Minimize(double sigma = 0){
 		double final_deviation = deviation2 - deviation1;
 		g_new->SetPoint(i, points[i].X(), points[i].Y(), final_deviation);
 	}//end loop
-	
+
 	TCanvas* c_new = new TCanvas ("", "", 1800, 900);
 	g_new->Draw("TRI");
 	c_new->Print(folder + "c_new.png");
 	delete c_new;
-	
+
 	TCanvas* c_dist2 = new TCanvas("", "", 1800, 900);
 	TGraph2D* g_dist2 = new TGraph2D(points.size());
 	for(int i = 0; i < points.size(); i++){
@@ -525,8 +564,8 @@ void Minimize(double sigma = 0){
 		double y_dif = points[i].Y() - new_coordinates[i][1];
 		double deviation = sqrt(x_dif * x_dif + y_dif * y_dif);
 		g_dist2->SetPoint(i, points[i].X(), points[i].Y(), deviation);
-		}//end of loop	
+	}//end of loop	
 	g_dist2->Draw("TRI");
 	c_dist2->Print(folder + "c_dist_new.png");
 
-	} //end of code
+} //end of code

@@ -212,7 +212,7 @@ void new_tof(double sigma = 0){
 	int n_crash = 0;
 	double blur = 1;			//defining parameters used in minimization and signal blurring
 
-	bool use_minuit = false;
+	bool use_minuit = true;
 	std::vector<std::vector<double>> signal_memory;
 	for(int iscint = 0; iscint < points.size() - 1; iscint++){
 		for (int ievent = 0; ievent < points[iscint].size(); ievent++){
@@ -288,16 +288,18 @@ void new_tof(double sigma = 0){
 			cout << "Primary point: (" << point.X() << ", " << point.Y() << ")" << endl;
 			cout << "reconstructed point: (" << results[0] << ", " << start_y[iscint] << ")" << endl;
 			}
-			else{
-				double xyz = GetMinimum_chi2(1, signals, SiPMs[iscint], SiPMs[iscint+8]);
-				double x_rec = GetMinimum_chi2(tolerance, signals, SiPMs[iscint], SiPMs[iscint + 8]);
-
-			}
+			// else{
+			// 	double xyz = GetMinimum_chi2(1, signals, SiPMs[iscint], SiPMs[iscint+8]);
+			// 	double x_rec = GetMinimum_chi2(tolerance, signals, SiPMs[iscint], SiPMs[iscint + 8]);
+			//
+			// }
 		}
 	}	//end of event loop
 
 	//##################################################### drawing plots #####################################################
-
+	TString fold_name = "segmented_tof_plots/";
+	gSystem->Exec("mkdir -p " + fold_name);
+	gSystem->cd(fold_name);
 	std::cout << "Minimization did not converge " << n_crash << " times " << std::endl;
 	cout << points[8].size() << " Points did not hit the scintillator" << endl;
 	TGraph* g_start = new TGraph(npoints);
@@ -332,39 +334,41 @@ void new_tof(double sigma = 0){
 	draw_boxes(scints);
 	can->cd(2);
 
-	g_end->GetXaxis()->SetRangeUser(-75, 75);
-	g_end->GetYaxis()->SetRangeUser(-75, 75);
+	g_end->GetXaxis()->SetLimits(-70, 70);
 
 	g_end->Draw("AP*");
 	draw_boxes(scints);
+	can->Print("g_reconstruction_minuit2.pdf");
+	can->Print("g_reconstruction_minuit2.png");
 
 	// ############ weighted charge #######################################
 
-	//	TGraph* g_weight = new TGraph(npoints);
-	//	iter = 0;
-	//	for (int i = 0; i < points.size() - 1; i++){
-	//		for(int j = 0; j < points[i].size(); j++) {
-	//			double charge[2] = {Det_response(SiPMs[i], points[i][j]), Det_response(SiPMs[i+8], points[i][j])};
-	//			XYVector pos[2] = {SiPMs[i] - points[i][j], SiPMs[i + 8] - points[i][j]};
-	//			g_weight->SetPoint(iter, (charge[0] * pos[0].X() + charge[1] * pos[1].X())/(charge[0] + charge[1]), start_y[i]);
-	//			iter++;
-	//		}
-	//	}//endl over points
-	//
-	//	TCanvas* c_weight = new TCanvas("", "", 1800, 900);
-	//	c_weight->Divide(2);
-	//	c_weight->cd(1);
-	//	g_start->GetXaxis()->SetRangeUser(-75, 75);
-	//	g_start->GetYaxis()->SetRangeUser(-75, 75);
-	//
-	//	g_start->Draw("AP*");
-	//	draw_boxes(scints);
-	//	c_weight->cd(2);
-	//
-	//	g_weight->GetXaxis()->SetRangeUser(-75, 75);
-	//	g_weight->GetYaxis()->SetRangeUser(-75, 75);
-	//
-	//	g_weight->Draw("AP*");
-	//	draw_boxes(scints);
+		TGraph* g_weight = new TGraph(npoints);
+		iter = 0;
+		for (int i = 0; i < points.size() - 1; i++){
+			for(int j = 0; j < points[i].size(); j++) {
+				double charge[2] = {Det_response(SiPMs[i], points[i][j]), Det_response(SiPMs[i+8], points[i][j])};
+				XYVector pos[2] = {SiPMs[i] - points[i][j], SiPMs[i + 8] - points[i][j]};
+				g_weight->SetPoint(iter, (charge[0] * pos[0].X() + charge[1] * pos[1].X())/(charge[0] + charge[1]), start_y[i]);
+				iter++;
+			}
+		}//endl over points
+	
+		TCanvas* c_weight = new TCanvas("", "", 1800, 900);
+		c_weight->Divide(2);
+		c_weight->cd(1);
+		g_start->GetXaxis()->SetLimits(-75, 75);
+	
+		g_start->Draw("AP*");
+		draw_boxes(scints);
+		c_weight->cd(2);
+	
+		g_weight->GetXaxis()->SetLimits(-75, 75);
+		g_weight->SetTitle("Reconstruction using the weighted charge;x[mm];y[mm]");
+	
+		g_weight->Draw("AP*");
+		draw_boxes(scints);
+
+		c_weight->Print("weighted_charge.pdf");
 	//########################################################################
 } //end of code

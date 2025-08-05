@@ -103,19 +103,37 @@ void draw_boxes(vector<TBox*> boxes){
 double GetMinimum_chi2(const int niter, const double tolerance, const float charge1, const float charge2, const XYVector SiPM1, const XYVector SiPM2){
 	int iter = 0;
 	double x = (SiPM1.X() * charge1 + SiPM2.X() * charge2)/(charge1 + charge2); //Start point guess from weighted charge		
-	double step_size = 10.0;
+	cout << "Charge in SiPM1: " << charge1 / (charge1 + charge2) << " Charge in SiPM2: " << charge2 / (charge1 + charge2) << endl;
+	cout << "Starting position: " << x << " scintillator dimension: +-" << SiPM1.X() << endl; 
+	double x1 = x - SiPM1.X();
+	double x2 = x - SiPM2.X();
+	double theor_sig1 = 1 / (x1) * exp( -abs(x1) / 1200);
+	double theor_sig2 = 1 / (x2)* exp( -abs(x2) / 1200);
+	double sig_tot = theor_sig1 + theor_sig2;
+	theor_sig1 /= sig_tot;
+	theor_sig2 /= sig_tot;
+	cout << "Theoretical signal at start position: SiPM1:" << theor_sig1 << " SiPM2: " << theor_sig2 << endl;
+	double step_size = 1.0;
+
 	double chi2 = 0;
 	double chi2_history = 0;
 	auto evaluate = [&x, SiPM1, SiPM2, charge1, charge2, &chi2](){
-		double dx1 = x - SiPM1.X();
-		double dx2 = x - SiPM2.X();
+		double dx1 = abs(x - SiPM1.X());
+		double dx2 = abs(x - SiPM2.X());
 
-		double theory_sig1 = 1.0 / (dx1 * dx1);
-		double theory_sig2 = 1.0 / (dx2 * dx2);
+		double theory_sig1 = 1 / (pow(dx1, 0.5)) * exp( -abs(dx1) / 1200);
+		double theory_sig2 = 1 / (pow(dx2, 0.5))* exp( -abs(dx2) / 1200);
+		double total_signal = theory_sig1 + theory_sig2;
+		theory_sig1/=total_signal;
+		theory_sig2/=total_signal;
+		
+		double total_charge = charge1 + charge2;
+		double frac_charge1 = charge1 / total_charge;
+		double frac_charge2 = charge2 / total_charge;
 
 		double residual1, residual2;					//Get chi2 at start point
-		residual1 = charge1 - theory_sig1;
-		residual2 = charge2 - theory_sig2;
+		residual1 = frac_charge1 - theory_sig1;
+		residual2 = frac_charge2 - theory_sig2;
 
 		chi2 = residual1 * residual1 + residual2 * residual2;
 		return chi2;
@@ -133,26 +151,38 @@ double GetMinimum_chi2(const int niter, const double tolerance, const float char
 
 		if (chi2 > chi2_history) {
 			direction *=-1;
-			step_size /= 10.0;
+			step_size /= 2.0;
 		}
 		if (abs(x) > abs(SiPM1.X())) {
 			std::cerr << "ERROR: X OUT OF BOUNDS" << endl;
-			return -1;
+			break;
 		}
 		if(iter == niter) break;
 		iter++;
 	}
-	return x;
+	double dx1 = abs(x - SiPM1.X());
+	double dx2 = abs(x - SiPM2.X());
+	cout << "dx1: " << dx1 << " dx2: " << dx2 << endl;
+
+	double theory_sig1 = 1 / (dx1) * exp( -abs(dx1) / 1200);
+	double theory_sig2 = 1 / (dx2)* exp( -abs(dx2) / 1200);
+	double total_signal = theory_sig1 + theory_sig2;
+	theory_sig1/=total_signal;
+	theory_sig2/=total_signal;
+	cout << "Final Chi squared value " << chi2 << endl;
+	cout << "Final fractional signal value: " << theory_sig1 << ", " << theory_sig2 << endl;
+	cout << "Final x value: " << x << endl;
+		return x;
 }
 
 //################################################ MAIN FUNCTION ###########################################
 
 
-void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S0.root"){
+void read_offline_data(TString filename = "/media/frantisek/T7 Shield/WCTE_data/WCTE_offline_R1375S0_VME1450.root"){
 
 	bool apply_cuts = true;  // Set true if we want cuts during analysis
 	int verbose = 0;
-	
+
 	TFile* file = new TFile(filename, "READ");	//open file
 
 
@@ -180,7 +210,7 @@ void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S
 	TString plots_folder = Form("analysis_plots/file_%i", run_number);
 	if(gSystem->AccessPathName(plots_folder)) gSystem->Exec("mkdir " + plots_folder);  // make a folder to save plots to
 	gSystem->cd(plots_folder);
-	
+
 	long nentries = tree->GetEntries();
 
 
@@ -255,7 +285,7 @@ void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S
 
 	TH1D* T0_TOF_times = new TH1D("T0_TOF_times", Form("Run %i T0 to TOF flight times; T0-TOF time; counts", run_number),500, -10000, 10000);
 	TH1D* T1_TOF_times = new TH1D("T1_TOF_times", Form("Run %i T1 to TOF flight times; T1-TOF time; counts", run_number),500, -500, 500);
-	
+
 	TH1D* h_132_trigger_wftime = new TH1D("h_132_trigger_wftime", Form("Run %i board 132 waveform trigger time; trigger time; counts", run_number), 500, -500, 4000);
 
 
@@ -271,6 +301,7 @@ void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S
 
 
 	std::map<int, bool> Trigger_hits;
+	vector<vector<vector<double>>> TOF_BRB_charges(nentries, vector<vector<double>>(16));
 
 	for (int i = 0; i < 8; i++){
 		Trigger_hits[i] = false;		//Fill map with detctor IDs we want to do cuts on (0, 1, 2, 3 - T0; 4, 5, 6, 7 - T1; 43, 44 - T4)
@@ -322,21 +353,21 @@ void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S
 
 		bool pass_cut = true;
 		if (verbose){
-		cout << endl;
-		cout << "#####################################" << endl;
-		cout << "Event " << ievent << " beamline data:" << endl;
-		cout << "number of TDC event IDs: " << beamline_pmt_tdc_ids->size() << " Number of TDC events: " << beamline_pmt_tdc_times->size() << endl; 
-		cout << "number of QDC event IDs: " << beamline_pmt_qdc_ids->size() << " Number of QDC events: " << beamline_pmt_qdc_charge->size() << endl; 
-		cout << " TDC channels: ";
-		for (int i = 0; i < beamline_pmt_tdc_ids->size(); i++){
-			cout << beamline_pmt_tdc_ids->at(i) << " ";
-		}
-		cout << endl;
-		cout << " QDC channels: ";
-		for (int i = 0; i < beamline_pmt_qdc_ids->size(); i++){
-			cout << beamline_pmt_qdc_ids->at(i) << " ";
-		}
-		cout << endl;
+			cout << endl;
+			cout << "#####################################" << endl;
+			cout << "Event " << ievent << " beamline data:" << endl;
+			cout << "number of TDC event IDs: " << beamline_pmt_tdc_ids->size() << " Number of TDC events: " << beamline_pmt_tdc_times->size() << endl; 
+			cout << "number of QDC event IDs: " << beamline_pmt_qdc_ids->size() << " Number of QDC events: " << beamline_pmt_qdc_charge->size() << endl; 
+			cout << " TDC channels: ";
+			for (int i = 0; i < beamline_pmt_tdc_ids->size(); i++){
+				cout << beamline_pmt_tdc_ids->at(i) << " ";
+			}
+			cout << endl;
+			cout << " QDC channels: ";
+			for (int i = 0; i < beamline_pmt_qdc_ids->size(); i++){
+				cout << beamline_pmt_qdc_ids->at(i) << " ";
+			}
+			cout << endl;
 		}	
 		if(apply_cuts){ //set if we want to apply cuts for this analysis
 			for (const auto& [ID, was_hit] : Trigger_hits){
@@ -346,7 +377,7 @@ void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S
 				HC_hits[ID] = false;
 			}
 
-			
+
 			for (int i = 0; i < beamline_pmt_tdc_ids->size(); i++){
 				int tdc_ID = beamline_pmt_tdc_ids->at(i);
 				// ######################## T0 CUTS ######################################
@@ -512,6 +543,8 @@ void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S
 					else if(hit_mpmt_card_ids->at(i) == 132){
 						card3_hist->Fill(pmt_id);
 
+						int hist_id = std::distance(tof_pmt_ids.begin(), tof_pmt_ids.find(pmt_id));
+						if (tof_pmt_ids.count(pmt_id)) TOF_BRB_charges[ievent][hist_id].push_back(hit_pmt_charges->at(i));
 
 						pmt_charge[hit_pmt_channel_ids->at(i)].push_back(hit_pmt_charges->at(i));
 						pmt_time[hit_pmt_channel_ids->at(i)].push_back(hit_pmt_times->at(i) - trigger_time[2]);
@@ -520,11 +553,11 @@ void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S
 				} //end if over cards 130 through 132
 			} //end loop over mpmt card numbers
 		}	//end if condition (check for cuts)
-		// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+			// xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
-		// ################################## WAVEFORM ANALYSIS ############################# 
+			// ################################## WAVEFORM ANALYSIS ############################# 
 		double waveform_trigger;
-		
+
 		int N_trigs = 0;
 		for (int i = 0; i < pmt_waveform_times->size(); i++){
 			int pmt = pmt_waveform_pmt_channel_ids->at(i);
@@ -544,6 +577,7 @@ void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S
 				int hist_id = std::distance(tof_pmt_ids.begin(), tof_pmt_ids.find(pmt_id));
 				double diff_time = waveform_time - waveform_trigger;
 
+
 				tof_waveform_times[hist_id]->Fill(pmt_waveform_times->at(i) - waveform_trigger);
 				if (diff_time > -155 && diff_time < -150){
 					auto& waveform = pmt_waveforms->at(i);
@@ -556,6 +590,102 @@ void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S
 		  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 	}// end of loop over events
+	 //
+
+	int NDet = 16;
+	vector<array<double, 2>> scint_dimensions = {{51, 16.25}, 
+		{94, 16.25},
+		{112, 16.25},
+		{123, 16.25},
+		{123, 16.25},
+		{112, 11.25},
+		{94, 16.25},
+		{51, 16.25}
+	};
+	vector<double> start_y = {-58.875, -42.125, -25.375, -8.625, 8.625, 25.375, 42.125, 58.875};
+	vector<array<double, 2>> det_positions;
+
+	TH2D* h_hits_weighted = new TH2D("h_hist_weight", "Histogram of reconstructed points via weighted charge;x[mm];y[mm]", 
+			41, -scint_dimensions[4][0]/2, scint_dimensions[4][0]/2,
+			8, start_y[0] - scint_dimensions[0][1]/2, start_y[7] + scint_dimensions[0][1]/2);
+
+
+	for (int i = 0; i < 2; i++){
+		for (int j = 0; j < NDet/2; j++){
+			array<double, 2> position;
+			if(i == 0) position = {scint_dimensions[j][0]/2, start_y[j]};
+			if(i == 1) position = {-scint_dimensions[j][0]/2, start_y[j]};
+
+			det_positions.push_back(position);
+		}
+	}//end for loop
+	double radius = 75;
+	std::vector<XYVector> SiPMs;
+	for (int i = 0; i  < NDet; i++){
+		SiPMs.push_back(construct_SiPM(det_positions[i][0], det_positions[i][1]));
+	}
+
+	double tolerance = 10e-12;
+	int max_iter = 1000;
+	vector<vector<array<double, 2>>> rec_coordinates(8);  //data arrays definition
+	vector<double> chi2_values;
+	for (int ievent = 0; ievent < TOF_BRB_charges.size(); ievent++){
+		for (int iscint = 0; iscint < TOF_BRB_charges[ievent].size()/2; iscint++){
+			if (TOF_BRB_charges[ievent][iscint].size() != 1 || TOF_BRB_charges[ievent][iscint + 8].size() != 1) continue;
+			double SiPM_charge_a = TOF_BRB_charges[ievent][iscint][0];
+			double SiPM_charge_b = TOF_BRB_charges[ievent][iscint+8][0];
+			double x_rec = GetMinimum_chi2(max_iter, tolerance, SiPM_charge_a, SiPM_charge_b, SiPMs[iscint], SiPMs[iscint+8]);
+			h_hits_weighted->Fill((SiPM_charge_a * SiPMs[iscint].X() + SiPM_charge_b * SiPMs[iscint+8].X())/(SiPM_charge_a + SiPM_charge_b), start_y[iscint]);
+			array<double, 2> help_arr = {x_rec, start_y[iscint]};
+			rec_coordinates[iscint].push_back(help_arr);
+
+			cout << "End point: (" << x_rec << ", " << start_y[iscint] << ")" << endl; 
+			cout << endl;
+		}	
+	}
+
+
+	for(int iscint = 0; iscint < 8; iscint++){
+		for (int ievent = 0; ievent < pmt_charge[iscint].size(); ievent++){
+
+		} //end loop over event in scintillator
+	}	//end loop over scintillators
+
+	//##############################################
+	vector<TBox*> scints;
+	for(int i = 0; i < scint_dimensions.size(); i++){
+		TBox* help_box = new TBox(-scint_dimensions[i][0]/2, start_y[i] - scint_dimensions[i][1]/2, scint_dimensions[i][0]/2, start_y[i] + scint_dimensions[i][1]/2) ;
+		scints.push_back(help_box);
+	}//end create scintillator tiles
+	 //
+	gStyle->SetOptStat(0);
+	TCanvas* c_weighted = new TCanvas("c_weighted", "c_weighted", 1800, 900);
+	h_hits_weighted->Draw("colz");
+	draw_boxes(scints);
+	c_weighted->Print("h_hits_weighed.png");
+	//#################################################
+
+	TH2D* h_hits = new TH2D("h_hist_final", "Histogram of reconstructed points positions from #chi^{2} minimization;x[mm]; y[mm]", 41, -scint_dimensions[4][0]/2, scint_dimensions[4][0]/2,
+			8, start_y[0] - scint_dimensions[0][1]/2, start_y[7] + scint_dimensions[0][1]/2);
+	for (int i = 0; i < SiPMs.size() / 2; i++){
+		for(int j = 0; j < rec_coordinates[i].size(); j++){
+			h_hits->Fill(rec_coordinates[i][j][0], rec_coordinates[i][j][1]);
+		}
+	}
+
+
+	TCanvas* c_hist = new TCanvas("", "", 1800, 900);
+	c_hist->Divide(2);
+	c_hist->cd(1);
+	gPad->SetRightMargin(0.2);
+	h_hits_weighted->Draw("colz");
+	draw_boxes(scints);
+	c_hist->cd(2);
+	gPad->SetRightMargin(0.2);
+	h_hits->Draw("colz");
+	draw_boxes(scints);
+	c_hist->Print("h_minimization.pdf");
+
 	TCanvas* c_T0 = new TCanvas("", "", 1800, 900);
 	c_T0->Divide(2);
 	c_T0->cd(1);
@@ -588,241 +718,175 @@ void read_offline_data(TString filename = "data/offline_data/WCTE_offline_R1308S
 
 	gStyle->SetPalette(1);
 
-	TCanvas* c_wf_trig = new TCanvas("", "", 900, 900);
-	h_132_trigger_wftime->Draw("hist");
+	/* TCanvas* c_wf_trig = new TCanvas("", "", 900, 900);
+	   h_132_trigger_wftime->Draw("hist");
 
-	TCanvas* c_wf_times = new TCanvas("", "", 1800, 900);
-	c_wf_times->Divide(4, 4);
-	for (int i = 0; i < 16; i++){
-		c_wf_times->cd(i + 1);
-		tof_waveform_times[i]->Draw("hist");
-	}
-	TCanvas* c_T0_tof = new TCanvas("", "", 900, 900);
-	T0_TOF_times->Draw("hist");
-	TCanvas* c_T1_tof = new TCanvas("", "", 900, 900);
-	T1_TOF_times->Draw("hist");
-
-
-	TCanvas* c_charge = new TCanvas("", "", 1800, 900);
-	c_charge->Divide(4, 4);
-	for (int i = 0; i < 16; i++){
-		c_charge->cd(i+1);
-		tof_charges[i]->Draw("hist");
-	}
-	c_charge->Print("c_charge.png");
-	c_charge->Print("c_charge.pdf");
-
-	TCanvas* c_time = new TCanvas("", "", 1800, 900);
-	c_time->Divide(4, 4);
-	for (int i = 0; i < 16; i++){
-		c_time->cd(i+1);
-		tof_times[i]->Draw("hist");
-	}
-	c_time->Print("c_time.png");
-	c_time->Print("c_time.pdf");
-
-	TCanvas* c_heatmaps = new TCanvas("", "", 1800, 900);
-	c_heatmaps->Divide(4, 4);
-	for (int i = 0; i < 16; i++){
-		c_heatmaps->cd(i+1);
-		tof_heatmaps[i]->Draw("hist");
-	}
-	c_heatmaps->Print("c_heatmaps.png");
-	c_heatmaps->Print("c_heatmaps.pdf");
-
-
-	for (const auto& pair : corresponding_pmt){
-		for(int i = 0; i < pmt_time[pair.first].size(); i++){
-			for (int j = 0; j < pmt_time[pair.second].size(); j++){
-				tof_diff[pair.first]->Fill(pmt_time[pair.first][i] - pmt_time[pair.second][j]);
-				tof_v_tof[pair.first]->Fill(pmt_time[pair.first][i], pmt_time[pair.second][j]);
-				if(abs(pmt_time[pair.first][i] - pmt_time[pair.second][j]) < 100){
-					tof_q_diff[pair.first]->Fill(pmt_charge[pair.first][i] - pmt_charge[pair.second][j]);
-					tof_qvq[pair.first]->Fill(pmt_charge[pair.first][i], pmt_charge[pair.second][j]);
-
-
-				}
-
-			} 
-		}
-	}
-
-
-
-	vector<TCanvas*> c_tvt(4);
-	for(int ican = 0; ican < c_tvt.size(); ican++){
-		c_tvt[ican] = new TCanvas(Form("can_%i", ican), "", 1800, 900);
-		c_tvt[ican]->Divide(4, 2);
-	}
-	gStyle->SetOptFit(1);
-	for(int i = 0; i < tof_diff.size(); i++){
-
-		c_tvt[0]->cd(i+1);
-		gPad->SetLeftMargin(0.15);
-		double x_max = tof_diff[i]->GetBinCenter(tof_diff[i]->GetMaximumBin());
-		tof_diff[i]->Fit("gaus", "RS", "", x_max - 10, x_max + 10);
-		TF1* fit_fun = tof_diff[i]->GetFunction("gaus");
-		tof_diff[i]->Draw("hist");
-		fit_fun->Draw("same");
-		c_tvt[1]->cd(i+1);
-		gPad->SetLogz();
-		gPad->SetRightMargin(0.15);
-		gPad->SetLeftMargin(0.15);
-		tof_v_tof[i]->SetStats(kFALSE);
-		tof_v_tof[i]->Draw("colz");
-		c_tvt[2]->cd(i+1);
-		gPad->SetLeftMargin(0.15);
-		x_max = tof_q_diff[i]->GetBinCenter(tof_q_diff[i]->GetMaximumBin());
-		tof_q_diff[i]->Fit("gaus", "RS", "", x_max - 500, x_max + 500);
-		fit_fun = tof_q_diff[i]->GetFunction("gaus");
-		tof_q_diff[i]->Draw("hist");
-		fit_fun->Draw("same");
-		c_tvt[3]->cd(i+1);
-		gPad->SetLogz();
-		gPad->SetRightMargin(0.15);
-		gPad->SetLeftMargin(0.15);
-		tof_qvq[i]->SetStats(kFALSE);
-		tof_qvq[i]->Draw("colz");
-
-	}
-	if(!apply_cuts){
-		c_tvt[0]->Print("c_tof_diff_nocuts.png");
-		c_tvt[1]->Print("c_tof_tvt_nocuts.png");
-		c_tvt[2]->Print("c_tof_q_diff_nocuts.png");
-		c_tvt[3]->Print("c_tof_qvq_nocuts.png");
-	}
-	else{
-		c_tvt[0]->Print("c_tof_diff.png");
-		c_tvt[1]->Print("c_tof_tvt.png");
-		c_tvt[2]->Print("c_tof_q_diff.png");
-		c_tvt[3]->Print("c_tof_qvq.png");
-	}
-
-	TCanvas* can1 = new TCanvas("", "", 1800, 900);
-	card1_hist->Draw("hist");
-
-	TCanvas* can2 = new TCanvas("", "", 1800, 900);
-	card2_hist->Draw("hist");
-
-	TCanvas* can3 = new TCanvas("", "", 1800, 900);
-	card3_hist->Draw("hist");
-
-
-	TCanvas* can_zoom = new TCanvas("", "", 900, 900);
-	tof_q_diff[4]->GetXaxis()->SetRangeUser(-400, 400);
-	tof_q_diff[4]->Draw("hist");
-	can_zoom->Print("tof_zoom.pdf");
-	// ############   LOOK AT POSITION RECONSTRUCTION    #####################################
-	/*
-	   int NDet = 16;
-	   vector<array<double, 2>> scint_dimensions = {{51, 16.25}, 
-	   {94, 16.25},
-	   {112, 16.25},
-	   {123, 16.25},
-	   {123, 16.25},
-	   {112, 11.25},
-	   {94, 16.25},
-	   {51, 16.25}
-	   };
-	   vector<double> start_y = {-58.875, -42.125, -25.375, -8.625, 8.625, 25.375, 42.125, 58.875};
-	   vector<array<double, 2>> det_positions;
-	   for (int i = 0; i < 2; i++){
-	   for (int j = 0; j < NDet/2; j++){
-	   array<double, 2> position;
-	   if(i == 0) position = {scint_dimensions[j][0]/2, start_y[j]};
-	   if(i == 1) position = {-scint_dimensions[j][0]/2, start_y[j]};
-
-	   det_positions.push_back(position);
+	   TCanvas* c_wf_times = new TCanvas("", "", 1800, 900);
+	   c_wf_times->Divide(4, 4);
+	   for (int i = 0; i < 16; i++){
+	   c_wf_times->cd(i + 1);
+	   tof_waveform_times[i]->Draw("hist");
 	   }
-	   }//end for loop
+	   TCanvas* c_T0_tof = new TCanvas("", "", 900, 900);
+	   T0_TOF_times->Draw("hist");
+	   TCanvas* c_T1_tof = new TCanvas("", "", 900, 900);
+	   T1_TOF_times->Draw("hist");
 
-	   double radius = 75;
-	   std::vector<XYVector> SiPMs;
-	   for (int i = 0; i  < NDet; i++){
-	   SiPMs.push_back(construct_SiPM(det_positions[i][0], det_positions[i][1]));
+
+	   TCanvas* c_charge = new TCanvas("", "", 1800, 900);
+	   c_charge->Divide(4, 4);
+	   for (int i = 0; i < 16; i++){
+	   c_charge->cd(i+1);
+	   tof_charges[i]->Draw("hist");
+	   }
+	   c_charge->Print("c_charge.png");
+	   c_charge->Print("c_charge.pdf");
+
+	   TCanvas* c_time = new TCanvas("", "", 1800, 900);
+	   c_time->Divide(4, 4);
+	   for (int i = 0; i < 16; i++){
+	   c_time->cd(i+1);
+	   tof_times[i]->Draw("hist");
+	   }
+	   c_time->Print("c_time.png");
+	   c_time->Print("c_time.pdf");
+
+	   TCanvas* c_heatmaps = new TCanvas("", "", 1800, 900);
+	   c_heatmaps->Divide(4, 4);
+	   for (int i = 0; i < 16; i++){
+	   c_heatmaps->cd(i+1);
+	   tof_heatmaps[i]->Draw("hist");
+	   }
+	   c_heatmaps->Print("c_heatmaps.png");
+	   c_heatmaps->Print("c_heatmaps.pdf");
+
+
+	   for (const auto& pair : corresponding_pmt){
+	   for(int i = 0; i < pmt_time[pair.first].size(); i++){
+	   for (int j = 0; j < pmt_time[pair.second].size(); j++){
+	   tof_diff[pair.first]->Fill(pmt_time[pair.first][i] - pmt_time[pair.second][j]);
+	   tof_v_tof[pair.first]->Fill(pmt_time[pair.first][i], pmt_time[pair.second][j]);
+	   if(abs(pmt_time[pair.first][i] - pmt_time[pair.second][j]) < 100){
+	   tof_q_diff[pair.first]->Fill(pmt_charge[pair.first][i] - pmt_charge[pair.second][j]);
+	   tof_qvq[pair.first]->Fill(pmt_charge[pair.first][i], pmt_charge[pair.second][j]);
+
+
 	   }
 
-	   vector<vector<array<double, 2>>> rec_coordinates(8);  //data arrays definition
-	   vector<double> chi2_values;
-	   for(int iscint = 0; iscint < 8; iscint++){
-	   for (int ievent = 0; ievent < pmt_charge[iscint].size(); ievent++){
-
-	   double tolerance = 10e-12;
-	   int max_iter = 1000;
-	   double x_rec = GetMinimum_chi2(max_iter, tolerance, pmt_charge.at(iscint).at(ievent), pmt_charge.at(corresponding_pmt.find(iscint)->second).at(ievent), SiPMs[iscint], SiPMs[iscint+8]);
-
-	   array<double, 2> help_arr = {x_rec, start_y[iscint]};
-	   rec_coordinates[iscint].push_back(help_arr);
-
-	   cout << "End point: (" << x_rec << ", " << start_y[iscint] << ")" << endl; 
-	   } //end loop over event in scintillator
-	   }	//end loop over scintillators
-
-	//##############################################
-	vector<TBox*> scints;
-	for(int i = 0; i < scint_dimensions.size(); i++){
-	TBox* help_box = new TBox(-scint_dimensions[i][0]/2, start_y[i] - scint_dimensions[i][1]/2, scint_dimensions[i][0]/2, start_y[i] + scint_dimensions[i][1]/2) ;
-	scints.push_back(help_box);
-	}//end create scintillator tiles
-	 //
-	 //#################################################
-
-	 TH2D* h_hits = new TH2D("h_hist_final", "Histogram of hits of reconstructed points+ x[mm]; y[mm]", 41, -scint_dimensions[4][0]/2, scint_dimensions[4][0]/2,
-	 8, start_y[0] - scint_dimensions[0][1]/2, start_y[7] + scint_dimensions[0][1]/2);
-	 for (int i = 0; i < SiPMs.size() / 2; i++){
-	 for(int j = 0; j < rec_coordinates[i].size(); j++){
-	 h_hits->Fill(rec_coordinates[i][j][0], rec_coordinates[i][j][1]);
-	 }
-	 }
-
-	 TCanvas* c_hist = new TCanvas("", "", 1800, 900);
-	 draw_boxes(scints);
-	 c_hist->cd(2);
-	 h_hits->Draw("colz");
-	 draw_boxes(scints);
-	 */
-
-	/*
-
-	   TRandom3 rand;
-
-
-
-
-
-
-	   int n_enum = 50;
-	   auto points = sort_points(get_grid(radius, n_enum), scint_dimensions, start_y);		//Generating grid
-
-
-
-	   long npoints = 0;
-	   int n_crash = 0;
-	   double blur = 0.001;			//defining parameters used in minimization and signal blurring
-
-	   std::vector<std::vector<double>> signal_memory;
-
-	   TCanvas* can = new TCanvas("", "", 1800, 900);
-
-	   can->Divide(2);
-	   can->cd(1);
-	   TGraph* g_start = new TGraph(npoints);
-	   TGraph* g_rec = new TGraph(npoints);
-	   int ip = 0;
-	   for (int i = 0; i < SiPMs.size() / 2; i++){
-	   for(int j = 0; j < points[i].size(); j++){
-	   g_rec->SetPoint(ip, rec_coordinates[i][j][0], rec_coordinates[i][j][1]);
-	   g_start->SetPoint(ip, points[i][j].X(), points[i][j].Y());
-	   ip++;
+	   } 
 	   }
 	   }
 
-	   g_start->Draw("AP*");
-	   draw_boxes(scints);
-	   can->cd(2);
-	   g_rec->Draw("AP*");
-	   draw_boxes(scints);
 
-	//############################################################################
-	*/
+
+	   vector<TCanvas*> c_tvt(4);
+	   for(int ican = 0; ican < c_tvt.size(); ican++){
+	   c_tvt[ican] = new TCanvas(Form("can_%i", ican), "", 1800, 900);
+	   c_tvt[ican]->Divide(4, 2);
+	   }
+	   gStyle->SetOptFit(1);
+	   for(int i = 0; i < tof_diff.size(); i++){
+
+	   c_tvt[0]->cd(i+1);
+	   gPad->SetLeftMargin(0.15);
+	double x_max = tof_diff[i]->GetBinCenter(tof_diff[i]->GetMaximumBin());
+	tof_diff[i]->Fit("gaus", "RS", "", x_max - 10, x_max + 10);
+	TF1* fit_fun = tof_diff[i]->GetFunction("gaus");
+	tof_diff[i]->Draw("hist");
+	fit_fun->Draw("same");
+	c_tvt[1]->cd(i+1);
+	gPad->SetLogz();
+	gPad->SetRightMargin(0.15);
+	gPad->SetLeftMargin(0.15);
+	tof_v_tof[i]->SetStats(kFALSE);
+	tof_v_tof[i]->Draw("colz");
+	c_tvt[2]->cd(i+1);
+	gPad->SetLeftMargin(0.15);
+	x_max = tof_q_diff[i]->GetBinCenter(tof_q_diff[i]->GetMaximumBin());
+	tof_q_diff[i]->Fit("gaus", "RS", "", x_max - 500, x_max + 500);
+	fit_fun = tof_q_diff[i]->GetFunction("gaus");
+	tof_q_diff[i]->Draw("hist");
+	fit_fun->Draw("same");
+	c_tvt[3]->cd(i+1);
+	gPad->SetLogz();
+	gPad->SetRightMargin(0.15);
+	gPad->SetLeftMargin(0.15);
+	tof_qvq[i]->SetStats(kFALSE);
+	tof_qvq[i]->Draw("colz");
+
+}
+if(!apply_cuts){
+	c_tvt[0]->Print("c_tof_diff_nocuts.png");
+	c_tvt[1]->Print("c_tof_tvt_nocuts.png");
+	c_tvt[2]->Print("c_tof_q_diff_nocuts.png");
+	c_tvt[3]->Print("c_tof_qvq_nocuts.png");
+}
+else{
+	c_tvt[0]->Print("c_tof_diff.png");
+	c_tvt[1]->Print("c_tof_tvt.png");
+	c_tvt[2]->Print("c_tof_q_diff.png");
+	c_tvt[3]->Print("c_tof_qvq.png");
+}
+
+TCanvas* can1 = new TCanvas("", "", 1800, 900);
+card1_hist->Draw("hist");
+
+TCanvas* can2 = new TCanvas("", "", 1800, 900);
+card2_hist->Draw("hist");
+
+TCanvas* can3 = new TCanvas("", "", 1800, 900);
+card3_hist->Draw("hist");
+
+
+TCanvas* can_zoom = new TCanvas("", "", 900, 900);
+tof_q_diff[4]->GetXaxis()->SetRangeUser(-400, 400);
+tof_q_diff[4]->Draw("hist");
+can_zoom->Print("tof_zoom.pdf"); */
+// ############   LOOK AT POSITION RECONSTRUCTION    #####################################
+
+
+
+/*
+
+   TRandom3 rand;
+
+
+
+
+
+
+   int n_enum = 50;
+   auto points = sort_points(get_grid(radius, n_enum), scint_dimensions, start_y);		//Generating grid
+
+
+
+   long npoints = 0;
+   int n_crash = 0;
+   double blur = 0.001;			//defining parameters used in minimization and signal blurring
+
+   std::vector<std::vector<double>> signal_memory;
+
+   TCanvas* can = new TCanvas("", "", 1800, 900);
+
+   can->Divide(2);
+   can->cd(1);
+   TGraph* g_start = new TGraph(npoints);
+   TGraph* g_rec = new TGraph(npoints);
+   int ip = 0;
+   for (int i = 0; i < SiPMs.size() / 2; i++){
+   for(int j = 0; j < points[i].size(); j++){
+   g_rec->SetPoint(ip, rec_coordinates[i][j][0], rec_coordinates[i][j][1]);
+   g_start->SetPoint(ip, points[i][j].X(), points[i][j].Y());
+   ip++;
+   }
+   }
+
+   g_start->Draw("AP*");
+   draw_boxes(scints);
+   can->cd(2);
+   g_rec->Draw("AP*");
+   draw_boxes(scints);
+
+//############################################################################
+*/
 } //end of code

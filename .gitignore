@@ -4,3 +4,10 @@ BeamMonitor/plots
 BeamMonitor/analysis_plots
 BeamMonitor/T1_plots
 BeamMonitor/plots_blur*
+*.pdf
+*.root
+*.png
+*.jpg
+*.so
+*.d
+*.pcm

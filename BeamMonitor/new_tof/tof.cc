@@ -62,7 +62,6 @@ void tof(){
 	vector<array<double, 2>> PMTs;
 	gSystem->Exec("mkdir -p ./T1_plots/");
 
-	vector<array<double, 2>
 	vector<array<double, 2>> PMT_positions = {{-size/2.0, size/4.0}, {size/2.0, size/4.0}, {-size/2.0, -size/4.0}, {size/2.0, -size/4.0}};
 	
 	TRandom3 rand;
